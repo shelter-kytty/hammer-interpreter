@@ -1,0 +1,1267 @@
+
+// changing a lot of syntax, specifically around functions and declarations:
+//          - functions now use ':' and '=' to demarkate the operands and body, respectively,
+//            which lets them be more expressive and expression-like
+//          - doing away with most declarations, including 'var' and 'let', though they may
+//            reappear with different semantics and handling
+
+err :         = print "[ Error ] could not parse for op"
+pow : x y     = x^y
+sqr : x       = x*2
+mid : x y z   = x + ((y - x) * z)
+
+
+tally = 0
+
+pow_two : x = {
+    if x {
+        x*2
+    } else {
+        1
+    }
+}
+
+inc_by_result : f i = {
+    i + f(i)
+}
+
+apply_tally := {
+    _ := inc_by_result$ pow_two tally 
+}
+
+collate : x = {
+    if x > 0 then {
+        (apply_tally(), collate(x - 1))
+    } else {
+        ()
+    }
+}
+
+exec : fns = {
+    head = frst fns
+    tail = scnd fns
+
+    head$
+    
+    if tail != () then {
+        exec$ tail
+    } else {
+        print "cycle complete"
+    }
+}
+
+exec$ collate$ 100
+
+
+// a simple closure
+fn : x = {
+    // other stuff
+    a = someFunc$ x other_stuff
+    // a bunch of logic
+    _ := a + other_func$ // return closed-over value(s)
+}
+
+// alert variable :: prints value whenever it's used : you have to call the function obv
+a := print "Hi, I'm being used!"
+
+a_being_used : f = {
+    // stuff
+    f$ (a$) stuff   // a prints it's value
+    // smthn idk
+}
+
+// formatted printing (not really related, just cool)
+show : self = {
+    printf$ f"{1}:\n\tH = {2}\n\tD = {3}\n\tA = {4}" self["name"] self["health"] self["defence"] self["attack"]
+}
+
+
+//two ways of calling a function
+//1. direct application operator '$'
+//2. 'wrapped' application operator '()' (is '()' a mixfix operator? Ambifix?)
+
+//pros
+//1. very expressive and minimalist, I think it looks nice. Since it's an operator it would be highlighted in 
+//   a modern text-editor, which makes function calls clearer. Function calls stand-out more in-general. In a 
+//   language like hammer where '()' has multiple meanings, it also makes intention less ambiguous.
+//2. makes the 'span' of a call very clear. A more traditional operator for function calling, making the syntax
+//   more approachable. Can be used inline without looking especially weird.
+
+//cons (ha)
+//1. unconventional syntax, makes language harder to learn. Requires a delimiter in certain in-line contexts, where
+//   functions are arguably the most likely to appear, especially in a FUNCTIONAL LANGUAGE. Would be an issue on non-
+//   western keyboards where '$' doesn't exist. Precedence isn't immediately obvious, even if it's literallly the only
+//   way to make it work properly, making it additionally harder to use. Looks somewhat like a sigil (not immediately a
+//   flaw- it's like ':=' making a 0-arity function, it's a funny coincidence)
+//2. can look messy at times, especially since most text-editors don't highlight them when they're not being moused 
+//   over. '()' can mean a unit value, a grouping, or a function call, making it hard to both read AND parse. Looks
+//   kinda weird without commas ',' separating arguments, the only part of Lisp I dislike.
+
+
+a : x = x * x
+
+// '$'
+a$ 5 // 25
+
+a$ 5 + 2 // 27
+
+a$ a$ a$ 5 + 2 // 390627
+
+// '()'
+a(5) // 25
+
+a(5) + 2 // 27
+
+a(a(a(5))) + 2 // 390627
+
+
+b : x y z = x + ((z - x) * y)
+
+// '$'
+b$ 5 + 1 0.5 12 // (_ : y z = 5 + ((z - 5) * y)) + 1; 0.5; 12
+
+b$ (5 + 1) 0.5 12 // 6 + ((12 - 6) * 0.5) = 9
+
+// '()'
+b(5) + 1 0.5 12 // (_ : y z = 5 + ((z - 5) * y)) + 1; 0.5; 12
+
+b(5 + 1 0.5 12) // 6 + ((12 - 6) * 0.5) = 9
+
+
+c : x = _ : y = x + y
+
+// '$'
+c$ 5 // _ : y = 5 + y
+
+c$ 5$ 7 // [error] '5' cannot be called
+
+(c$ 5)$ 7 // 12
+
+// '()'
+c(5) // _ : y = 4 + y
+
+c(5(7)) // [error] '5' cannot be called
+
+c(5)(7) // 12
+
+
+d := {
+    getInput(stdin) // Look idk what to do alr?
+    // stuff
+    stuff_var
+}
+
+// '$'
+x = d$
+
+// '()'
+x = d()
+
+// first working (and somewhat practical) program!
+// calculate the squares from x to y (inclusive) and then sum them
+// 60 is the HARD limit due to the small stack size and lack of tail-call optimising
+lower = 0
+
+upper = 60
+
+before = clock$
+
+collate : x y = if x <= y then (x^2, collate((x + 1) y)) else ()
+
+sum : chain = {
+    head = frst chain
+    tail = scnd chain
+    
+    if tail != () then {
+        head + sum$ tail
+    } else {
+        head
+    }
+}
+
+ttl = sum$ print collate$ lower upper
+
+after = clock$
+
+printf$ f"Measured {1} seconds before and {2} seconds \n\
+after, totalling roughly {3} seconds to compute \n\
+{4} with bounds {5} and {6}\n" (before) (after) (after - before) ttl lower upper
+
+
+
+// Examples of using closures
+enum : x = {
+    if x > 0 then {
+        ((_ := print x), enum(x - 1))
+    } else {
+        ()
+    }
+}
+
+act : chain = {
+    head = frst chain
+    tail = scnd chain
+
+    head$
+
+    if tail != () then {
+        act$ tail
+    } else {
+        print "Loop end"
+    }
+}
+
+act$ (enum$ 10)
+
+
+
+// Create closures
+init : x y f = {
+    printf$ f"init:\nx = {1}\ny = {2}\nf = {3}\n" x y f
+    if x > y then {
+        (f(x), init$ (x - 1) y f)
+    } else {
+        ()
+    }
+}
+
+// Fill list with captured results
+fill : x y chain = {
+    printf$ f"fill:\nx = {1}\ny = {2}\nchain = {3}\n" x y chain
+
+    g = (car chain)
+    tail = (cdr chain)
+
+    if tail != () then {
+        (g(y), fill$ (x) (y + 1) tail)
+    } else {
+        g(y), tail
+    }
+}
+
+// Display results
+enum : chain = {
+    printf$ f"enum:\nchain = {1}\n" chain
+    head = (car chain)
+    tail = (cdr chain)
+
+    print head
+
+    if tail != () then {
+        enum$ tail
+    } else {
+        print "Complete"
+    }
+}
+
+
+start = 0
+end = 10
+
+enum(fill$ (end) (start) (init$ (end) (start) (_ : x = _ : y = x+y)))
+
+
+// Calculate the volumes of various solids in Real number space
+captureX : x = {
+    _ : y = {
+        // Forward propagation; if you want '_ : z' to capture 'x', you
+        // have to drag it into the immediate fn's scope. I think it 
+        // makes sense
+        _x = x
+        _ : z = _x * y * z
+    }
+}
+
+various : param = {
+    fns = car param
+    vls = cdr param
+
+    aFunc = car fns
+    tail1 = cdr fns
+
+    bFunc = car tail1
+    tail2 = cdr tail1
+
+    cFunc = car tail2
+    
+    dFunc = cdr tail2
+
+    a = car vls
+    vtail1 = cdr vls
+
+    b = car vtail1
+    vtail2 = cdr vtail1
+
+    c = car vtail2
+
+    d = cdr vtail2
+
+    _a = aFunc$ a
+    _b = bFunc$ b
+    _c = cFunc$ c
+    _d = dFunc$ d
+
+    _a , _b , _c , _d
+}
+
+Xs = ((captureX , captureX , captureX , captureX) , 1.0 , 2.0 , 3.0 , 4.0)
+Ys = (various$ Xs) , 5.0 , 6.0 , 7.0 , 8.0
+Zs = (various$ Ys) , 9.0 , 10.0, 11.0, 12.0
+print various$ Zs
+
+
+// Better version using deconstructions (just implemented!!!)
+captureX : x = {
+    _ : y = {
+        _x = x
+        _ : z = _x * y * z
+    }
+}
+
+various : param = {
+    fns, vls = param
+
+    aF, bF, cF, dF = fns
+
+    a, b, c, d = vls
+
+    (aF$ a) , (bF$ b) , (cF$ c) , (dF$ d)
+}
+
+Xs = ((captureX , captureX , captureX , captureX) , 1.0 , 2.0 , 3.0 , 4.0)
+Ys = (various$ Xs) , 5.0 , 6.0 , 7.0 , 8.0
+Zs = (various$ Ys) , 9.0 , 10.0, 11.0, 12.0
+A , B , C , D = various$ Zs
+
+printf$ f"A = {1}\nB = {2}\nC = {3}\nD = {4}\n" A B C D
+
+
+// Improved deconstructions! Waow!!!
+captureX : x = {
+    _ : y = {
+        _x = x
+        _ : z = _x * y * z
+    }
+}
+
+various : param = {
+    fns, vls = param
+
+    aF, bF, cF, dF = fns
+
+    a, b, c, d = vls
+
+    (((aF$ a) , (bF$ b) , (cF$ c) , (dF$ d)) , (lmbd := (a , b , c , d)))
+}
+
+Xs = ((captureX , captureX , captureX , captureX) , 1.0 , 2.0 , 3.0 , 4.0)
+XCs , xCell = various$ Xs
+
+Ys = (XCs) , (5.0 , 6.0 , 7.0 , 8.0)
+YCs, yCell = various$ Ys
+
+Zs = (YCs) , (9.0 , 10.0, 11.0, 12.0)
+(A , B , C , D) , (zCell) = various$ Zs
+
+printf$ f"A = {1}\nB = {2}\nC = {3}\nD = {4}\n" A B C D
+
+
+print xCell$
+print yCell$
+print zCell$
+
+
+
+// Syntax for other functional concepts (+ records)
+// kinda don't know how I'd implement some of these
+
+// continuations? Iderk what they are lol
+fun : x y = {
+    // blah blah
+    // x ....
+    // y ...
+
+    -> other
+}
+
+// fn composition?
+// A returns into B
+fn_C = fn_A -> fn_B
+
+// other way around
+fn_C = fn_B <- fn_A
+
+// '.' like Haskell
+fn_C = fn_A . fn_B
+
+// partial application??
+// B is A, but receives params '4' & '5' by default
+fn_B = fn_A <- 4 5
+
+// '.' operator for partial application
+fn_B = fn_A . 4 5
+
+
+// explicit tail calls??
+// with the way Hammer is, it might be hard to do a tail-call
+// optimisation without something like this
+
+// With working tail-calls, a function like this would simply
+// run forever, without overflowing the stack (I think)
+f : x = {
+    print x
+    <- f(x-1)
+}
+
+// The lua docs give these as examples of 
+// valid tail calls (adapted to Hammer as best as possible)
+f : x = g(x)
+
+foo : n = {
+    if n > 0 then foo(n - 1) else ()
+}
+
+// These don't work (inside Lua)
+f : x = {
+    g(x)
+    ()
+}
+
+f : x = g(x) + 1
+f : x = x or g(x)
+f : x = (g(x))
+
+// Given Hammer's complex scanning and compilation steps, I'm
+// sure I could detect other types of tail calls that would
+// technically work (f : x = (g(x)) not working is.. almost
+// embarrassing? And f : x = x or g(x) should ABSOLUTELY work,
+// the parsing logic is just a little complex). Additionally,
+// '<-' could just ATTEMPT a tail call, and give up if it doesn't
+// work, ig; it's kinda just a "leave this function before calling
+// me, please" operator, so.
+
+
+// was prototyping a problem in my vm (just trying to get the
+// order of some function calls right) but realised I liked
+// the syntax
+pushPartials : vm fn x = {
+    if x > 0 then {
+        val = pop(vm)
+
+        if (x - 1) > 0 then {
+            pushPartials$ (vm) (fn) (x - 1)
+        }  else {
+            ()
+        }
+
+        push(vm, fn["partials"][fn["arity"] - x])
+    }
+    else ()
+}
+
+// Lady or girl test
+
+// Encounters a stack overflow at values higher than 4 ;-;
+// Returns the right values, though, idk how. The amount of stack
+// frames needed for 10 is like 1150, so that's not happening lmfaoo
+// idek how it USES that much, it's such a weird and contrived algorithm
+
+a : k x1 x2 x3 x4 x5 = {
+    a_ = a
+
+    b := {
+        g = k - 1
+        a_$ g b x1 x2 x3 x4
+    }
+
+    if k <= 0 then x4() + x5() else b()
+}
+
+print a$ 3 (_ := 1) (_ := -1) (_ := -1) (_ := 1) (_ := 0)
+
+
+// typeOf stdlib fn
+f := {
+    a = 0
+    _ := a
+}
+
+clsr = f$
+
+cell = (1 , 1)
+ntv = typeOf
+
+printf(
+    f"() = {1}\ntrue = {2}\n1 = {3}\n1.0 = {4}\n'a' = {5}\n\"a\" = {6}\n(1 , 1) = {7}\n<f : 0> = {8}\n<ntv : 1> = {9}\n<clsr : 0> = {10}"
+    typeOf(unit) typeOf(true) typeOf(1) typeOf(1.0) typeOf('a') typeOf("a") typeOf(cell) typeOf(f) typeOf(ntv) typeOf(clsr)
+)
+
+
+// Comma quibbling
+quibble : words = {
+    put "{"
+
+    // Big stupid if statement
+    worry : words = {
+        type = typeOf(words)
+        if type == 0 then {
+            print "}"
+        } else if type == 5 then {
+            printf$ f"{1}}\n" words
+        } else if type == 6 then {
+            if typeOf(cdr words) == 5 then {
+                printf$ f"{1} and {2}}\n" (car words) (cdr words)
+            } else {
+                printf$ f"{1}, " (car words)
+                worry$ (cdr words)
+            }
+        } else ()
+    }
+
+    worry$ words
+}
+
+
+quibble$ ()
+quibble$ "ABC"
+quibble$ ("ABC" , "DEF")
+quibble$ ("ABC" , "DEF" , "G" , "H")
+quibble$ ("Me" , "myself" , "I")
+quibble$ ("Jack" , "Jill")
+
+
+// Works essentially like the elvis operator '?:'
+// 'and' and 'or' don't coerce their args to booleans, they 
+// just evaluate their truthiness and jump accordingly, meaning
+// they leave the argument behind as-is to be evaluated elsewhere
+
+// If prev_key is invalid, gen a new key
+mask_keys : prev_key name data = {
+    (prev_key) or (genKey(name data))
+}
+
+
+// "Hashtable" implemented with cons cells
+// It actually works though, which is hilarious
+// '()' offsets final element, so that entries are always 
+// in car and the table/end is always in cdr
+table = {"A", 1} , {"B", 2} , {"C", 3} , {"D", 4}, unit
+
+tableGet : table key = {
+    entry = car table
+
+    if { car entry } == key then cdr entry else {
+        if cdr table then {
+            tableGet(cdr table ; key)
+        } else {
+            unit
+        }
+    }
+}
+
+tableAdd : table key value = {
+    cons cons key value table
+}
+
+tableDelete : table key = {
+    if table then {
+        entry = car table
+    
+        if {car entry} == key then {
+            cdr table
+        } else {
+            entry , tableDelete(cdr table ; key)
+        }
+    } else unit
+}
+
+forEntries : table op = {
+    if table then {
+        op(car table)
+        forEntries(cdr table ; op)
+    } else unit
+}
+
+printEntry : entry = printf(f"{1} => {2}\n" ; car entry ; cdr entry )
+
+value = tableGet(table "B")
+
+tmpTable = tableAdd(table "F" 6)
+
+newTable = tableAdd(tmpTable "E" 5)
+
+print tableGet(newTable "E")
+
+print tableGet(newTable "F")
+
+tableSmaller = tableDelete(newTable "F")
+
+put f"\nOG:\n"
+forEntries(table printEntry)
+put f"\nLorge:\n"
+forEntries(newTable printEntry)
+put f"\nSmol:\n"
+forEntries(tableSmaller printEntry)
+
+
+// use '=>' for mapping inputs to outputs
+// Looks pretty good
+someFn : a f g = {
+    match a with {
+        1   => print f$
+        2   => print g$
+        -1  => error()
+        _   => a
+    }
+}
+
+input_token = [
+    "Name"      => user_name
+    "Input"     => inputStr
+    "Request #" => num
+    "Id"        => genId(user_name inputStr num)
+]
+
+// multiple expressions inside '( )' = list?
+// Lisp-y...
+list = (1 2 3 4 5)
+print list[2] // 3
+print list(2) // also 3???
+print list$ 2 // ???????????
+
+
+// Semicolons as 'generic' separators
+// I like it :]
+a_list = (1; 2; 3; 4);
+a_map  = ["X" => 1; "Y" => 2; "Z" => 3; "W" => 4;] // Support trailing delimiters
+a_call("A"; "B" "C"; "D") // And a lack of them!
+
+// empty expressions all equal unit
+print () == [] == {} // 'true'
+printf$ f"() = {1}\n[] = {2}\n{} = {3}\n" () [] {} // --->v
+// vvvvvvvvv<---------------------------------------------<
+// () = UNIT
+// [] = UNIT
+// {} = UNIT
+
+// empty containers??
+empty_list = (;)
+empty_map  = [;]
+
+// add things to them???? What???????
+empty_list << f(x)
+empty_map  .. ["K" => f(x)]
+
+// 'k => v' is only valid syntax inside of a map expression, so you have 
+// to concat them; the equivalent for lists would be
+list .. (;;f(x)) // semicolons make a list with 1 index
+
+// could do one of these?
+map << ("K"; f(x))
+map << ("K", f(x))
+
+// could just force the compiler to evaluate it correctly
+// maybe there could be some sort of "mapping" object??
+map << ("K" => f(x)) 
+
+// ok, alright; what if the k/v pairs are LITERALLY JUST CONS CELLS???
+// like this is valid syntax
+
+a = ("K" => f(x))
+
+print (car a) // "K"
+print (cdr a) // 'f(x)'
+
+map << a
+
+print map["K"] // 'f(x)'
+
+// this could apply to the implementation too, where the array is 
+// just an ObjCell** (probably not though- they don't need to all
+// individually be Objs; they could just be val pairs, though, and
+// could easily translate into a table entry FROM a cell)
+
+// But yeah, outside of the '[]', the '=>' operator could just act
+// as a lower-precedence version of ',' or 'cons', there's no
+// reason it wouldn't work, really.
+
+("K" => v) == ("K", v) == (cons "K" v) != ["K" => v]
+
+// at the very least, making it so tuples can be pushed into maps
+// isn't a very big ask and makes a lot of sense, really
+
+// also slicing, ranges, and comprehensions
+list = (1 2 3 4 5 6 7 8 9)          // (1 2 3 4 5 6 7 8 9)
+slice = list[3:8]                   // (4 5 6 7 8 9)
+range = 1 .. 9                      // (1 2 3 4 5 6 7 8 9)
+comp = (i for i in list if i >= 4)  // (4 5 6 7 8 9)
+
+// and popping??? Maybe????
+// could just,,,, --count;,,, it'd work,,,,,
+// stacks are cool, yknow?
+list >> val // list = (1 2 3 4 5 6 7 8), val = 9
+
+
+append : n str = {
+    if n then {
+        str .. append(n - 1 str)
+    } else {
+        str
+    }
+}
+
+
+append$ 60 (append$ 380 "HHHGREGG")
+
+
+// Variadic operator functions!
+// use "`" to wrap an oparator
+
+// Done
+(`+`$ 1 2 3 4 5 6 7 8 9) == (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9)
+
+// a lack of type coercion outside of int-float is the only thing
+// keeping this from being a million miles long
+(`==`$ () [] {} unit) == ((() == []) and () == {} and () == unit) 
+
+// might not look that useful, but is quite important for HOFs and 
+// situations where you might want to execute a function but not
+// be able to determine or write out it's parameters at compile time
+(`$`$ (_ : x y z = x*y*z) (5; 4; 3)) == ((_ : x y z = x*y*z)$ 5 4 3)
+
+
+
+fib : n = {
+    fibInner : n a b = {
+        if n == 0 then a else {
+            <- fibInner(n - 1; b; a + b)
+        }
+    }
+
+    <- fibInner(n 0 1)
+}
+
+print fib(10)
+
+//fib(90): 2880067194370816120
+//web(90): 2880067194370816120
+
+//fib(92.0): 75401138047463464 -> 96
+//web(93):   75401138047463464 -> 29
+
+//fib(100.0): 3542248481792619 -> 97056
+//web(100):   3542248481792619 -> 15075
+
+//fib(150.0):  996921667718930 -> 4526037969797120.000000
+//web(150):    996921667718930 -> 3386214405760200
+
+//fib(250.0):  78963258261317 -> 27506236816023580005726635406431092736.000000
+//web(250):    78963258261317 -> 30509282738943634332893686268675876375
+
+//fib(300.0):  222232244629420 -> 346838163627942524289433543944298387859199492096.000000
+//web(300):    222232244629420 -> 445529739893461909967206666939096499764990979600
+
+
+// pattern matching
+// not a huge fan of the syntax tbh, I'm not using '|' for anything else, not even
+// logical or, it's just weird
+// match 0 with
+//     | 1 => print "uno" 
+//     | 2 => print "dos" 
+//     | 3 => print "tres"
+
+// removing 'with' and not indenting the cases honestly looks better
+match 0
+| 1 => print "uno"
+| 2 => print "dos"
+| 3 => print "tres"
+
+
+// pipeline syntax
+// also not crazy about this, but I kinda dig it tbh
+foo |> bar |> fub |> baz == baz(fub(bar(foo())))
+
+// looks much better like this
+foo
+|> bar
+|> fub
+|> baz
+
+
+
+reverse2 : l = {
+    helper : l x r = {
+        if x > 0 
+        then <- helper(l ; x - 1 ; {r << l[x]; r})
+        else r
+    }
+
+    helper(l; len(l); [])
+}
+
+print reverse2(print 1 .. 10)
+
+
+
+test_list = 1 .. 10
+test_fn : i = i^2 - 1
+
+
+before_native = clock()
+
+test_native = map(test_fn ; test_list)
+
+after_native = clock()
+
+
+landscape : f l = {
+    r = []
+
+    helper : x = {
+        if x <= len(l)
+        then {
+            r << f(l[x])
+            <- helper(x + 1)
+        }
+        else r
+    }
+
+    <- helper(1)
+}
+
+
+before_landscape = clock()
+
+test_landscape = landscape(test_fn ; test_list)
+
+after_landscape = clock()
+
+printf( 
+    f"native took {1} seconds, while landscape took {2}, for a list with {3} elements\n" 
+    after_native - before_native
+    after_landscape - before_landscape
+    len(test_list)
+)
+
+print test_native
+print test_landscape
+
+
+// VERY interesting thing from the Gleam Language Tour (also, cool lang, will try!)
+
+//      Function captures
+//      
+//      Gleam has a shorthand syntax for creating anonymous functions that take one argument and immediately 
+//      call another function with that argument: the function capture syntax.
+//      
+//      The anonymous function fn(a) { some_function(..., a, ...) } can be written as some_function(..., _, ...), with any 
+//      number of other arguments passed to the inner function. The underscore _ is a placeholder for the argument, 
+//      equivalent to a in fn(a) { some_function(..., a, ...) }. 
+
+//      import gleam/io
+//      
+//      pub fn main() {
+//        // These two statements are equivalent
+//        let add_one_v1 = fn(x) { add(1, x) }
+//        let add_one_v2 = add(1, _)
+//      
+//        io.debug(add_one_v1(10))
+//        io.debug(add_one_v2(10))
+//      }
+//      
+//      fn add(a: Int, b: Int) -> Int {
+//        a + b
+//      }
+
+// Hammer Equivalent would be like
+
+// Lambda fn
+square = _ : x = x ^ 2
+
+// fn capture
+pow : x y = x^y
+square = pow$ _ 2
+
+
+// You could decipher whether it's a "Function Capture" or regular application by checking
+// to see if the token for the application BinaryExpr* is the same as the one for the
+// parameter BlockExpr*. Could do like (Token){TOKEN_UNIT, NULL, 0, operator.line} idk
+// You can just check for the '_' during the AST phase and do this to expedite it in the
+// compilation phase
+
+// The most interesting part is that these are THE SAME THING, it's not a different system or method
+// for handling it, it is EXACTLY THE SAME. I could probably just make it reorganise the whole thing 
+// in the AST phase
+
+// Okie I dids it :333cccc it is as-described, the ast phase detects the partial application and literally
+// generates a secret lambda expression that uses dynamically generated identifiers and then substitutes
+// the LiteralExpr* '_'s with the generated args. It's quite good.
+// It also sneaks a return in so the compiler will optimise it into a tail call
+
+pow : x y = x^y
+
+square = pow(_ ; 2)
+
+print square$4 // 16
+
+
+add_3_nums : x y z = x + y + z
+
+add_4_to_2 = add_3_nums(_ ; _ ; 4)
+
+add_9 = add_4_to_2$ _ 5
+
+print add_9$4 // 13
+
+
+f : x = {
+    pow(_ ; x)
+}
+
+cube = f$3
+
+print cube$4 // 64
+
+// I should try and make this work for some addition and stuff..... hmmm
+// Could also use the same technique for function composition <<<___<<<
+
+// Also, nick their calling and parenthesis parsing stuff; '()' is ONLY used for calls, '{}' handles ALL
+// "anonymised" code (so the same as '()' when used like it is in math, as in '(1+3)*3'), and '[]' is used for 
+// lists (or maps, in my case) and substringing
+
+
+// What about... Some and None? Rust uses these for it's Option<T> enum, which is how it handles things like
+// NULL and NaN and such (as well as other invalid values), but I think having these as integral
+// types could be a good way of doing more complex pattern matching and equality.
+
+// None would be a type that is equal only to itself, while Some would be equal to everything (maybe only 
+// things other than None). You could use this in pattern matching, for example; rather than having to 
+// specially compile '_' for certain cases and such, it could just evaluate to Some, making it easier to 
+// work with in the case of, for example, tuples in patterns.
+
+// This snippet from the Gleam Language Tour is what gave me the idea, it's quite interesting:
+//      let result = case x, y {
+//          0, 0 -> "Both are zero"
+//          0, _ -> "First is zero"
+//          _, 0 -> "Second is zero"
+//          _, _ -> "Neither are zero"
+//      }
+
+// I think using '_' for Some and '()' for None, alongside the keywords, would be the best way for it
+// to work. Super interesting stuff
+
+// Taking 'T' as a type that isn't None or Some
+// +--------------------+
+//  None == Some ∴ false
+//  None != Some ∴ true
+// +--------------------+
+//  T == Some    ∴ true
+//  T != Some    ∴ false
+//  T == None    ∴ false
+//  T != None    ∴ true
+
+// The way languages like Haskell and Rust implement these is much more complex, involving generics
+// and variant types and overloading, but even as something simple, it could be fine! None would
+// pretty much just be a renaming of Unit, and Some could help extend the functionality of certain things
+
+
+// Variadic functions
+f : x y a[] = {
+    if x < y then a[x] else ()
+}
+
+(f$ 2 6 "A" "B" "C" "D" "E" "F") == "B"
+
+
+empty_list = []
+empty_map  = [=>]
+
+a = rev(1 .. 10)
+
+_ := print x
+
+b = rev("ABCDEFG")
+
+c_1 = "Hello,"
+
+c_2 = " world!"
+
+c = c_1 .. c_2
+
+
+foldt : f l = {
+    left = car l
+    right = cdr l
+    
+    if typeOf(right) == 6 then {
+        if typeOf(left) == 6
+        then <- f(
+            foldt(f left) 
+            foldt(f right)
+        )
+        else <- f(
+            left 
+            foldt(f right)
+        )
+    } else {
+        if typeOf(left) == 6
+        then <- f(
+            foldt(f left) 
+            right
+        )
+        else <- f(
+            left 
+            right
+        )
+    }
+}
+
+trans : c = {
+    left = car c
+    right = cdr c
+
+    if typeOf(right) == 6 then {
+        if typeOf(left) == 6 
+        then trans(right) , trans(left)
+        else trans(right) , left
+    } else {
+        if typeOf(left) == 6
+        then right , trans(left)
+        else right , left
+    }
+}
+
+minus : x y = x - y
+ccons : x y = x , y
+snocc : x y = y , x
+list = 1 .. 5
+
+
+
+r = foldr(minus ; list)
+
+l = foldl(minus ; list)
+
+print r
+print l
+
+
+rtmp = print foldr(ccons ; list)
+ltmp = print foldl(ccons ; list)
+wrrd = print foldr(snocc ; list)
+drrw = print foldl(snocc ; list)
+
+a = print foldt(minus ; rtmp)
+b = print foldt(minus ; ltmp)
+c = print foldt(minus ; wrrd)
+d = print foldt(minus ; drrw)
+
+x = print trans(rtmp)
+y = print trans(ltmp)
+z = print trans(wrrd)
+w = print trans(drrw)
+
+print foldt(minus ; x)
+print foldt(minus ; y)
+print foldt(minus ; z)
+print foldt(minus ; w)
+
+
+
+
+mul : x y = x*y
+double : x = <- mul(x ; 2)
+
+div : x y = x/y
+half : x = <- div(x ; 2)
+
+tmp : x = <- half(double(x))
+
+
+test = print half . double
+
+print test(2)
+
+
+test_2 = print half . mul
+
+print test_2(3 ; 6)
+
+
+test_3 = print double . double . div
+
+print test_3(10 ; 5)
+
+first : x = {
+    print "I'm first!"
+    <- x * 2
+}
+
+second : x = {
+    print "I'm second"
+    <- x^2
+}
+
+both = second . first
+
+print both(1)
+
+// This,,,, could work, but like.... Idk, it's kinda scuffed
+// When you consider functions calling on functions and stuff where
+// the tail call has less of an impact, it just becomes more and more
+// complicated and doesn't seem to help with the performance that much
+// Idk, composition working is enough of a miracle for me.
+cps_double : x cont = {
+    // the src of double, then call cont on result
+    <- cont(mul(x ; 2))
+}
+
+cps_test : x = {
+    <- cps_double(x ; half)
+}
+
+print cps_test(2)
+
+
+// Pipeline !!!!
+l = 1 .. 100
+foldr({_ : x y = x + y} ; l[42:99])
+|> { _ : x = x/len(l) }
+|> printf(f"The average is {1}\n" ; _)
+
+// Custom operators + operator literals????
+`~~ : x y = {x*y}^y
+print 3 ~~ 4
+
+foldr(`+ ; 1 .. 10)
+|> `/(_ len(l))
+|> printf(f"The average is {1}\n" ; _)
+
+
+`~ : x y = x + {{y - x} / 2}
+
+if {a ~ b} > 10 then f() else g()
+
+
+// Class / datatype syntax???
+
+// '|' or '#'...
+// '|' is similar to the way Haskell et al. do it, but it's not quite similar
+// enough in function to warrant the 'reference', I think
+// '#', however, is completely alien syntax. I don't even know of any languages
+// that USE '#' other than C, and it's to escape preprocessor statements. But,
+// Hammer ALREADY has some funky syntax, so, what's the issue with a little
+// more fudgery hmmm???
+
+// The big thing for me is that they'd be most similar to structs; they'd 
+// basically be syntactic sugar for maps, which, I mean, that's already true
+// for most implementations of classes.... so......
+
+// Are they even worth adding? There's no type-checking beyond the runtime so
+// it's not like it helps solve type errors or something, and cells, maps and 
+// lists already exist, if you just need to package data, even if you 
+// specifically want to NAME it, that functionality is already a thing.
+
+// I think the main thing would be extending the operator overloading stuff,
+// so you can properly overload existing operators, rather than rescoping the
+// definition (i.e. a dataclass has it's own '+' method, so the vm will call
+// that instead of using the normal addition function)
+
+// And that COULD be fun, but it mostly, to me, seems kinda wack? Idk, I mean
+// that's a thing you can do in Haskell, so I guess it can't be THAT 
+// bad, right?
+Parent |= *stuff*
+Parent #= *stuff*
+
+Child | Parent =
+Child # Parent =
+
+// I think the -> accessor syntax KINDA works, like it's not too bad, it's just
+// yknow a shame I have to steal it from end-users. I'd rather take it than
+// '.' that's for sure, plus it's a nice jumpscare for all the imperative
+// programmers out there lolol
+
+Complex | Real = {
+    init : r i = {
+        self.r = r
+        self.i = i
+    }
+
+    `+ : n = {
+        if typeOf(n) == typeOf(self) 
+        then Complex(self->r + n->r, self->i + n->i)
+        else Complex(self->r + n, self->i)
+    }
+
+    `- : c = {
+        if typeOf(c) == typeOf(self) 
+        then Complex(self->r - c->r, self->i - c->i)
+        else Complex(self->r - c, self->i)
+    }
+
+    `* : r = {
+        Complex(self->r * r, self->i * r)
+    }
+}
+
+a(_ : aleph = )
+
+
+Person | = {
+    init : a h n = {
+        Age = a
+        Height = h
+        Name = n
+    }
+}
+
+// Implicitly declared with datatype
+Age : r = r["Age"]
+Height : r = r["Height"]
+Name : r = r["Name"]
+
+guy = Person(33 ; 5.0 ; "Jeremy")
+dude = Person(40 ; 6.4 ; "Mark")
+
+Person : a h n = [
+    "Age"    => a
+    "Height" => h
+    "Name"   => n
+]
+
+// Has to be done explicitly 
+// for factory function
+Age : r = r["Age"]
+Height : r = r["Height"]
+Name : r = r["Name"]
+
+guy = Person(33 ; 5.0 ; "Jeremy")
+dude = Person(40 ; 6.4 ; "Mark")
+
+
+
+// All do exact same thing
+print Age(guy)
+print Age(dude)
+
+print Height(guy)
+print Height(dude)
+
+print Name(guy)
+print Name(dude)
+
+
+`:: : a b = {
+    if b > 1
+    then a[:b] , a[b+1:]
+    else a[1] , a[2:]
+}
+
+a = 3 .. 10
+
+start , end = a::1
+
+print start
+printf(f"{1} - {2}\n" ; end[1] ; end[len(end)]) 
+
+_ : d = alphe

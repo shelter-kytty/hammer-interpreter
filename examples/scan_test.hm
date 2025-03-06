@@ -1,0 +1,36 @@
+identifier_123abc
+
++ - ..
+* / % ^
+< > <= >=
+== !=
+= => _
+!
+?
+. $
+print put cons car cdr frst scnd and or in
+@
+#
+\
+~
+&&
+~@
+:=
+`==
+`+
+`$
+`<|>
+a : b = c
+|> | ; , (  ) {  } [ ]
+return if then else 
+printf$
+a$
+1-1
+0.1
+1.1
+5e-10
+"String"
+'c'
+true
+false
+unit

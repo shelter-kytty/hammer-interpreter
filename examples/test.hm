@@ -1,0 +1,17 @@
+
+
+print "llo" in "Hello, world!"
+
+print 3 in { 1 .. 5 }
+
+print 'a' in "cdba"
+
+print "Long string" in "short"
+
+print "Same" in "Same"
+
+print " me" in "Help me"
+
+print "?" in "Hello, world!"
+
+print [3 2 1] in 2

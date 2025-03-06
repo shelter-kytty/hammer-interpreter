@@ -1,0 +1,175 @@
+
+
+func insert x t1 t2 h1 h2 : Unit = {
+    if lookup(x)
+        return
+    
+    for _ in max_loop {
+        if !(t1[h1(x)]) {
+            t1[h1(x)] = x
+            return
+        }
+
+        let tmp = x
+        x = t1[h1(tmp.key)]
+        t1[h1(tmp.key)] = tmp
+        del tmp
+
+        if !(t2[h2(x)]) {
+            t2[h2(x)] = x
+            return
+        }
+        
+        let tmp = x
+        x = t2[h2(tmp.key)]
+        t2[h2(tmp.key)] = tmp
+        del tmp
+    }
+
+    rehash(t1 t2)
+    insert(x t1 t2 h1 h2)
+}
+
+let x = [ 1 .. 10 ];
+
+x.iter(func (i) -> print i)
+
+let mappedList : List<Flt> = x.map(func (i) = i / 10)
+
+let sum : Int = x.fold(func (i) = i)
+
+let filtered : List<Int> = x.filt(func (i) = i > 2 and i < 7)
+
+let sorted : List<Int> = x.sort(func (i, j) = i < j)
+
+let a = [] // a list of funcs
+let b = [] // a 2d array of function params
+
+for i in a.len() {
+    apply(a[i], b[i]) // execute functions of varying arities in one loop
+}
+
+let phi : Flt = (Flt)x.fold(func (i) -> i % pi)
+
+del phi
+
+let a = f"A String \nn  \" sa; "
+
+
+printf("Char : %c\n", 42)
+printf("Int  : %i\n", 42)
+printf("Flt  : %f\n", 4.2)
+printf("SciN : %e\n", 4.2)
+printf("BinS : %b\n", 42)
+printf("BinL : %B\n", 42)
+printf("HexL : %h\n", 42)
+printf("HexU : %H\n", 42)
+printf("Oct  : %o\n", 42)
+printf("0bn  : %#b\n", 42)
+printf("0BN  : %#B\n", 42)
+printf("0xn  : %#h\n", 42)
+printf("0xN  : %#H\n", 42)
+printf("0n   : %#o\n", 42)
+printf("Str  : %s\n", "'42'")
+
+{
+    var a = 10 \
+        + 2    \
+        + 3    \
+        + 4          
+
+    // ==
+
+    var a = 10 + 2 + 3 + 4
+}
+
+
+{
+    var a = 2
+
+    func local_function c : Int = a + c
+
+    // local_function is simply collected after block : no closure
+}
+
+func thing T c = {
+    func aClosure v = c .. v .. T
+    
+    // other stuff
+    
+    return somethingElse    // aClosure is not returned : no closure
+}
+
+func huh(a b) {
+
+    func sqr_doesnt_have_local a = a^2
+
+    // stuff
+
+    return sqr_doesnt_have_local;     // sqr does not use any local vars : no closure
+}
+
+
+if a == 10 then
+// stuff
+else
+// other stuff
+
+let b = if a != 10 then a else Unit;
+
+let b = if (a != 10) then { a } else { Unit };
+
+let b = i for i in [1 .. 200] if i % 8 == 2 else Unit
+
+Int func A(Int x, Int y) { 
+    return x * y 
+}
+
+func A(Int x, Int y) : Int { 
+    x * y
+}
+
+func A(x y) = x * y
+
+func A x y = x * y
+
+let A x y = x * y
+
+let a = Int func (Int x, Int y) { 
+    return x * y 
+}
+
+let a = func (x y) -> x * y
+
+
+let a = 30
+
+if a == 100 then { 
+    print a
+} else { 
+    print "Error"
+}
+
+let `Ten-ple` = (10, ("Ten", 10.0))
+
+let firmt = car `Ten-ple`
+
+let seccecodnondond = car (cdr `Ten-ple`)
+
+
+let tooDeep = cons cons cons 1 2 cons 3 4 cons cons 5 6 cons 7 8
+
+let `Oh fuck oh god-` = frst (frst (scnd tooDeep))
+
+let `LET ME OUTTTT-` = scnd (scnd tooDeep)
+
+
+func fib(n) {
+    if n < 2 then {
+        n
+    } else {
+        fib(n - 1) + fib(n - 2)
+    }
+}
+
+print fib(3)
