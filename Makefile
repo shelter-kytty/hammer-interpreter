@@ -4,7 +4,7 @@
 #
 
 # Fixed directories/args
-TARGET   := final 
+TARGET   := build.exe
 SRC_DIR  := ./src
 REL_DIR  := ./build/release
 DBG_DIR  := ./build/debug
@@ -15,6 +15,9 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 CC       := gcc
 CFLAGS   := -Wall -Wextra
 CPPFLAGS := $(INC_FLAGS) -MMD -MP
+
+# Need to link against math.h manually
+LFLAGS   := -lm
 # ----------------------
 
 # Dependent directories/args
@@ -45,7 +48,7 @@ release: CLFAGS += -O3 -DRELEASE
 release: $(EXE)
 
 $(EXE): $(OBJS)
-	$(CC) $(OBJS) -o $(EXE)
+	$(CC) $(OBJS) -o $(EXE) $(LFLAGS)
 
 $(OBJS): $(BUILD_DIR)/%.c.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $(BLD_DIR)$@
