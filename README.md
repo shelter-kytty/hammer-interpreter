@@ -10,7 +10,7 @@ In addition, Hammer contains changes such as:
   - Makes use of Tail-Call Optimisation
   - A lack of classes, `class` and most other keywords
   - Records akin to Pythons `dict`, and Lists which support adding members
-  - An extended set of builtin functions and features such as format strings/printing
+  - An extended set of builtin functions and features such as format strings/printing, custom operators, function composition, cons cells and more
   - Near-completely different syntax
 
 
