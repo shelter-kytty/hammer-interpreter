@@ -1,7 +1,7 @@
 # hammer-interpreter
 An interpreter for Hammer, a dynamically-typed, expression-oriented language that is somewhat functional.
 
-Hammer is, at its core, an implementation of CLox, an imperative language with OOP features and dynamic typing, designed and implemented by Bob Nystrom for his excellent book Crafting Interpreters, which can be found at https://github.com/munificent/craftinginterpreters, which links to a page of several other implementations just like this one! The book itself can be found at https://craftinginterpreters.com and is an excellent resource.
+The interpreter is, at its core, an implementation of the intepreter for CLox, an imperative language with OOP features and dynamic typing, designed and implemented by Bob Nystrom for his excellent book Crafting Interpreters, which can be found [here](https://github.com/munificent/craftinginterpreters), which links to a page of several other implementations just like this one! [The book itself](https://craftinginterpreters.com) is an excellent resource and one of my favourites.
 
 ## Whats different?
 
@@ -13,6 +13,7 @@ In addition, Hammer contains changes such as:
   - An extended set of builtin functions and features such as format strings/printing, custom operators, function composition, cons cells and more
   - Near-completely different syntax, favouring simple operators and semantics over keywords
   - A pivot towards expressions; all expression-statements return "something", loops are expressed through recursion, etc.
+  - An extended feature set for implementation, such as support for variadic native functions and for calling non-/native functions with native ones.
 
 
 ## Build
