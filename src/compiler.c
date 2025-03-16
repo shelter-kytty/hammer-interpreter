@@ -1134,10 +1134,16 @@ static bool isFnName(Expr* expr) {
 }
 
 static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
+    #ifdef DEBUG_COMPILER_PROGRESS
     printf("Starting fn compilation\n");
-    printf("fn name is ");
+    #endif
+
     Token fgjho = getToken(ternary->left);
+
+    #ifdef DEBUG_COMPILER_PROGRESS
+    printf("fn name is ");
     printToken(&fgjho);
+    #endif
 
     if (!isFnName(ternary->left)) {
         compilerError(enclosing, "Expected function identifier or wildcard, got %.*s", getToken(ternary->left).length, getToken(ternary->left).start);
@@ -1171,7 +1177,9 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     compiler.tree = enclosing->tree;
     beginScope(&compiler);
 
+    #ifdef DEBUG_COMPILER_PROGRESS
     printf("Initialised compiler & fn scope\n");
+    #endif
 
     BlockExpr* args = (BlockExpr*)ternary->pivot;
 

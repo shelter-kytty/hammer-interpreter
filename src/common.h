@@ -18,6 +18,7 @@ typedef enum {
 #define STACK_SIZE 256 * FRAME_MAX
 
 // DEBUGGING ------------------->
+#ifdef DEBUG
 /* Compilation info */
 //#define DEBUG_DISPLAY_TOKENS
 //#define DEBUG_DISPLAY_AST
@@ -39,6 +40,7 @@ typedef enum {
 //#define DEBUG_SCOPE_UPDATES
 //#define DEBUG_CHUNK_UPDATES
 //#define DEBUG_STRING_DETAILS
+#endif
 // <------------------- DEBUGGING
 
 // USER OPTIONS ---------------->
