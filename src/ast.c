@@ -745,6 +745,7 @@ static Expr* apply(ProgramTree* tree, Expr* last) {
         
         BlockExpr* lmbd_params = Block(tree, (Token){TOKEN_COLON, NULL, 1, operator.line});
 
+        // Magic that makes Partial Application work  
         // All this bs is to make sure that 
         //      1. The identifiers are mutually unique
         //      2. The identifiers cannot be accidentally assigned by the user
@@ -869,17 +870,7 @@ static const ParseRule rules[] = {
     [TOKEN_PRINT]               = { unary,      NULL,       PREC_NONE },
     [TOKEN_RETURN]              = { unary,      NULL,       PREC_NONE },
 
-    // Types :: 48 - 55     := Act as prefix operators; for explicit type conversion
-    [TOKEN_BOOL_TN]             = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_INT_TN]              = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_FLOAT_TN]            = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_CHAR_TN]             = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_STR_TN]              = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_LIST_TN]             = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_REC_TN]              = { unary,       NULL,      PREC_UNARY },
-    [TOKEN_UNIT_TN]             = { unary,       NULL,      PREC_UNARY },
-
-    // Control :: 56 - 59   := Nothing, should not be parsed 
+    // Control :: 48 - 51   := Nothing, should not be parsed 
     [TOKEN_BREAK]               = { NULL,       NULL,       PREC_NONE },
     [TOKEN_SOF]                 = { NULL,       NULL,       PREC_NONE },
     [TOKEN_EOF]                 = { NULL,       NULL,       PREC_NONE },

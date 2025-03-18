@@ -144,8 +144,6 @@ print a(3 ; {_ := 1} ; {_ := -1} ; {_ := -1} ; {_ := 1} ; {_ := 0})
 
 
 
-l = 
-
 foldr({_ : x y = x + y} ; 1 .. 100)
 |> { _ : x = x/len(l) }
 |> printf(f"The average is {1}\n" ; _)
@@ -247,28 +245,6 @@ put f"\nLorge:\n"
 forEntries(newTable printEntry)
 put f"\nSmol:\n"
 forEntries(tableSmaller printEntry)
-
-
-
-
-
-a : k x1 x2 x3 x4 x5 = {
-    a_ = a
-
-    b := {
-        g = k - 1
-        <- a_$ g b x1 x2 x3 x4
-    }
-
-    if k <= 0 then x4() + x5() else <- b()
-}
-
-print a(4 ; {_ := 1} ; {_ := -1} ; {_ := -1} ; {_ := 1} ; {_ := 0})
-
-
-
-
-
 
 
 
@@ -418,25 +394,6 @@ eval$ () true _or
 
 eval$ false (3 < 1) _and
 eval$ (8 >= 9) (2 == 1) _or
-
-opped_or : x y = {
-    ((Int (x?)) + (Int (y?)))?
-}
-
-opped_and : x y = {
-    ((Int (x?)) * (Int (y?)))?
-}
-
-print "Optimised:"
-eval$ (5 == 5) (typeOf(5) == 2) opped_and
-eval$ (5 < 2) (5 > 4) opped_or
-
-eval$ () true opped_and
-eval$ () true opped_or
-
-eval$ false (3 < 1) opped_and
-eval$ (8 >= 9) (2 == 1) opped_or
-
 
 wrapped_and : x y = {
     x and y

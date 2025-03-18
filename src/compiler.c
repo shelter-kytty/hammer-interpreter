@@ -14,14 +14,17 @@
 #include "memory.h"
 
 
+static void compilerError(Compiler* compiler, const char* format, ...);
+
+
 simple Chunk* currentChunk(Compiler* compiler) {
     return &compiler->function->body;
 }
 
-static Token getToken(Expr* expression) {
+static Token getToken(Compiler* compiler, Expr* expression) {
     if (expression == NULL) {
-        fprintf(stderr, "Expression is NULL\n");
-        exit(64);
+        compilerError(compiler, "Token was NULL");
+        return (Token){ TOKEN_ERROR, NULL, 0, 0 };
     }
 
     switch (expression->type) {
@@ -48,8 +51,8 @@ static Token getToken(Expr* expression) {
     }
 }
 
-static bool isTType(Expr* expression, TokenType type) {
-    return getToken(expression).type == type;
+static bool isTType(Compiler* compiler, Expr* expression, TokenType type) {
+    return getToken(compiler, expression).type == type;
 }
 
 static const char* getName(Compiler* compiler) {
@@ -399,7 +402,7 @@ static void fString(Compiler* compiler, Token oldStr) {
 }
 
 static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
-    Token token = getToken((Expr*)literal);
+    Token token = getToken(compiler, (Expr*)literal);
     if (token.type == TOKEN_WILDCARD) {
         return;
     }
@@ -456,12 +459,10 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
 }
 
 static void optimiseReturn(Compiler* compiler, UnaryExpr* unary) {
-    Token token = getToken((Expr*)unary);
+    Token token = getToken(compiler, (Expr*)unary);
     Expr* operand = unary->operand;
 
-    if (operand->type == EXPR_BINARY && 
-        (getToken(operand).type == TOKEN_LEFT_PAREN || getToken(operand).type == TOKEN_DOLLAR)
-        ) {
+    if (operand->type == EXPR_BINARY && getToken(compiler, operand).type == TOKEN_LEFT_PAREN || getToken(compiler, operand).type == TOKEN_DOLLAR) {
         compileExpr(compiler, unary->operand);  
         currentChunk(compiler)->code[currentChunk(compiler)->count - 2] = (uint8_t)OP_TAIL_CALL;
     }
@@ -472,7 +473,7 @@ static void optimiseReturn(Compiler* compiler, UnaryExpr* unary) {
 }
 
 static void optimiseNegation(Compiler* compiler, UnaryExpr* unary) {
-    Token arg = getToken(unary->operand);
+    Token arg = getToken(compiler, unary->operand);
     if (arg.type == TOKEN_INTEGER) {
         long long value = strtoll(arg.start, NULL, 0);
 
@@ -513,11 +514,11 @@ static void optimiseNegation(Compiler* compiler, UnaryExpr* unary) {
 
 static void plainUnary(Compiler* compiler, UnaryExpr* unary, OpCode op) {
     compileExpr(compiler, unary->operand);  
-    emitByte(compiler, op, getToken((Expr*)unary).line);
+    emitByte(compiler, op, getToken(compiler, (Expr*)unary).line);
 }
 
 static void compileUnary(Compiler* compiler, UnaryExpr* unary) {
-    Token token = getToken((Expr*)unary);
+    Token token = getToken(compiler, (Expr*)unary);
     switch (token.type) {
     case TOKEN_RETURN:      optimiseReturn(compiler, unary);            return;
     case TOKEN_BANG:        plainUnary(compiler, unary, OP_NOT);        return;
@@ -525,17 +526,9 @@ static void compileUnary(Compiler* compiler, UnaryExpr* unary) {
     case TOKEN_EOF:         plainUnary(compiler, unary, OP_RETURN);     return;
     case TOKEN_CAR:         plainUnary(compiler, unary, OP_CAR);        return;
     case TOKEN_CDR:         plainUnary(compiler, unary, OP_CDR);        return;
-    case TOKEN_INT_TN:      plainUnary(compiler, unary, OP_INT_CAST);   return;
-    case TOKEN_FLOAT_TN:    plainUnary(compiler, unary, OP_FLOAT_CAST); return;
     case TOKEN_PRINT:       plainUnary(compiler, unary, OP_PRINT);      return;
     case TOKEN_PUT:         plainUnary(compiler, unary, OP_PUT);        return;
     case TOKEN_QUESTION:    plainUnary(compiler, unary, OP_TRUTHY);     return;
-    //case TOKEN_BOOL_TN:   plainUnary(compiler, unary, OP_);           return;
-    //case TOKEN_CHAR_TN:   plainUnary(compiler, unary, OP_);           return;
-    //case TOKEN_STR_TN:    plainUnary(compiler, unary, OP_);           return;
-    //case TOKEN_LIST_TN:   plainUnary(compiler, unary, OP_);           return;
-    //case TOKEN_REC_TN:    plainUnary(compiler, unary, OP_);           return;
-    //case TOKEN_UNIT_TN:   plainUnary(compiler, unary, OP_);           return;
     }
 
     compilerError(compiler, "Invalid expression at %.*s", token.length, token.start);
@@ -556,8 +549,8 @@ static void reverseBinary(Compiler* compiler, BinaryExpr* binary, OpCode op) {
 
 static void _and(Compiler* compiler, BinaryExpr* binary) {
     compileExpr(compiler, binary->left);
-    int falseyJmp = emitJump(compiler, OP_JUMP_IF_FALSE, getToken(binary->left).line);
-    emitByte(compiler, OP_POP, getToken(binary->left).line); // remove condition 
+    int falseyJmp = emitJump(compiler, OP_JUMP_IF_FALSE, getToken(compiler, binary->left).line);
+    emitByte(compiler, OP_POP, getToken(compiler, binary->left).line); // remove condition 
 
     compileExpr(compiler, binary->right);
     patchJump(compiler, falseyJmp);
@@ -565,8 +558,8 @@ static void _and(Compiler* compiler, BinaryExpr* binary) {
 
 static void _or(Compiler* compiler, BinaryExpr* binary) {
     compileExpr(compiler, binary->left);
-    int truthyJmp = emitJump(compiler, OP_JUMP_IF_TRUE, getToken(binary->left).line);
-    emitByte(compiler, OP_POP, getToken(binary->left).line); // remove condition 
+    int truthyJmp = emitJump(compiler, OP_JUMP_IF_TRUE, getToken(compiler, binary->left).line);
+    emitByte(compiler, OP_POP, getToken(compiler, binary->left).line); // remove condition 
 
     compileExpr(compiler, binary->right);
     patchJump(compiler, truthyJmp);
@@ -577,7 +570,7 @@ static void _or(Compiler* compiler, BinaryExpr* binary) {
 // access it
 static void bindVal(Compiler* compiler, BinaryExpr* binary) {
     int spot;
-    Token nomme = getToken(binary->left);
+    Token nomme = getToken(compiler, binary->left);
     ObjString* name = NULL;
 
     // Scan identifier;
@@ -597,7 +590,7 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
         addLocal(compiler, name, nomme.line);
 
     // Handle rvalue
-    if (getToken(binary->right).type == TOKEN_LEFT_BRACE && compiler->scopeDepth > 0) {
+    if (getToken(compiler, binary->right).type == TOKEN_LEFT_BRACE && compiler->scopeDepth > 0) {
         emitByte(compiler, OP_UNIT, nomme.line);
         compileExpr(compiler, binary->right);
         emitBytes(compiler, OP_SWAP_TOP, OP_POP, getLastLine(compiler));
@@ -613,7 +606,7 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
     else {
         fixLocal(compiler, name, nomme.line);
 
-        if (getToken(binary->right).type == TOKEN_EQUALS) {
+        if (getToken(compiler, binary->right).type == TOKEN_EQUALS) {
             emitByte(compiler, OP_DUPE_TOP, getLastLine(compiler));
         }
     }
@@ -621,40 +614,40 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
 
 static void recurse(Compiler* compiler, BinaryExpr* binary) {
 
-    if (getToken(binary->right).type == TOKEN_COMMA) {
-        emitByte(compiler, OP_DECONS, getToken(binary->right).line);
+    if (getToken(compiler, binary->right).type == TOKEN_COMMA) {
+        emitByte(compiler, OP_DECONS, getToken(compiler, binary->right).line);
         recurse(compiler, (BinaryExpr*)binary->right);
-        emitByte(compiler, OP_POP, getToken(binary->left).line);
+        emitByte(compiler, OP_POP, getToken(compiler, binary->left).line);
     }
     else {
-        emitByte(compiler, OP_DECONS, getToken(binary->right).line);
-        if (getToken(binary->right).type == TOKEN_IDENTIFIER) {
-            Token id = getToken(binary->right);
+        emitByte(compiler, OP_DECONS, getToken(compiler, binary->right).line);
+        if (getToken(compiler, binary->right).type == TOKEN_IDENTIFIER) {
+            Token id = getToken(compiler, binary->right);
             ObjString* name = copyString(compiler->vm,  id.start, id.length);
             uint8_t spot = makeConstant(compiler, OBJ_VAL(name));
             emitBytes(compiler, OP_MAKE_GLOBAL, spot, id.line);
             emitByte(compiler, OP_POP, id.line);
         }
-        else if (getToken(binary->right).type == TOKEN_WILDCARD){
-            emitByte(compiler, OP_POP, getToken(binary->right).line);
+        else if (getToken(compiler, binary->right).type == TOKEN_WILDCARD){
+            emitByte(compiler, OP_POP, getToken(compiler, binary->right).line);
         }
         else {
-            compilerError(compiler, "Expected lvalue, got %.*s", getToken(binary->right).length, getToken(binary->right).start);
+            compilerError(compiler, "Expected lvalue, got %.*s", getToken(compiler, binary->right).length, getToken(compiler, binary->right).start);
             return;
         }
     }
 
-    if (getToken(binary->left).type == TOKEN_COMMA) {
+    if (getToken(compiler, binary->left).type == TOKEN_COMMA) {
         recurse(compiler, (BinaryExpr*)binary->left);
     }
-    else if (getToken(binary->left).type == TOKEN_IDENTIFIER) {
-        Token id = getToken(binary->left);
+    else if (getToken(compiler, binary->left).type == TOKEN_IDENTIFIER) {
+        Token id = getToken(compiler, binary->left);
         ObjString* name = copyString(compiler->vm,  id.start, id.length);
         uint8_t spot = makeConstant(compiler, OBJ_VAL(name));
         emitBytes(compiler, OP_MAKE_GLOBAL, spot, id.line);
     }
-    else if (getToken(binary->left).type != TOKEN_WILDCARD) {
-        compilerError(compiler, "Expected lvalue, got %.*s", getToken(binary->left).length, getToken(binary->left).start);
+    else if (getToken(compiler, binary->left).type != TOKEN_WILDCARD) {
+        compilerError(compiler, "Expected lvalue, got %.*s", getToken(compiler, binary->left).length, getToken(compiler, binary->left).start);
         return;
     }
 }
@@ -662,9 +655,9 @@ static void recurse(Compiler* compiler, BinaryExpr* binary) {
 static ObjCell* maskTree(Compiler* compiler, BinaryExpr* binary) {
     ObjCell* cell = newCell(compiler->vm);
 
-    TokenType lType = getToken(binary->left).type;
+    TokenType lType = getToken(compiler, binary->left).type;
     if (lType == TOKEN_IDENTIFIER) {
-        Token id = getToken(binary->left);
+        Token id = getToken(compiler, binary->left);
         ObjString* name = copyString(compiler->vm, id.start, id.length);
         addLocal(compiler, name, id.line);
         fixLocal(compiler, name, id.line);
@@ -680,13 +673,13 @@ static ObjCell* maskTree(Compiler* compiler, BinaryExpr* binary) {
         // recurse to add cell branch
     }
     else {
-        compilerError(compiler, "Expected lvalue, got %.*s", getToken(binary->left).length, getToken(binary->left).start);
+        compilerError(compiler, "Expected lvalue, got %.*s", getToken(compiler, binary->left).length, getToken(compiler, binary->left).start);
         // ignore branch and throw an error
     }
 
-    TokenType rType = getToken(binary->right).type;
+    TokenType rType = getToken(compiler, binary->right).type;
     if (rType == TOKEN_IDENTIFIER) {
-        Token id = getToken(binary->right);
+        Token id = getToken(compiler, binary->right);
         ObjString* name = copyString(compiler->vm, id.start, id.length);
         addLocal(compiler, name, id.line);
         fixLocal(compiler, name, id.line);
@@ -702,7 +695,7 @@ static ObjCell* maskTree(Compiler* compiler, BinaryExpr* binary) {
         // recurse to add cell branch
     }
     else {
-        compilerError(compiler, "Expected lvalue, got %.*s", getToken(binary->right).length, getToken(binary->right).start);
+        compilerError(compiler, "Expected lvalue, got %.*s", getToken(compiler, binary->right).length, getToken(compiler, binary->right).start);
         // ignore branch and throw an error
     }
 
@@ -718,12 +711,12 @@ static void decons(Compiler* compiler, BinaryExpr* binary) {
     else {
         ObjCell* mask = maskTree(compiler, (BinaryExpr*)binary->left);
         uint8_t spot = makeConstant(compiler, OBJ_VAL(mask));
-        emitBytes(compiler, OP_TREE_COMP, spot, getToken(binary->left).line);
+        emitBytes(compiler, OP_TREE_COMP, spot, getToken(compiler, binary->left).line);
     }
 }
 
 static void assignment(Compiler* compiler, BinaryExpr* binary) {
-    if (binary->left->type == EXPR_BINARY && getToken(binary->left).type == TOKEN_COMMA) {
+    if (binary->left->type == EXPR_BINARY && getToken(compiler, binary->left).type == TOKEN_COMMA) {
         decons(compiler, binary);
     }
     else {
@@ -740,7 +733,7 @@ static void apply(Compiler* compiler, BinaryExpr* binary) {
         compileExpr(compiler, args->subexprs[i]);
     }
 
-    emitBytes(compiler, OP_CALL, (uint8_t)args->count, getToken((Expr*)binary).line);
+    emitBytes(compiler, OP_CALL, (uint8_t)args->count, getToken(compiler, (Expr*)binary).line);
 }
 
 /*  +----
@@ -782,17 +775,17 @@ static void compileMatch(Compiler* compiler, BinaryExpr* binary) {
     for (int i = 0; i < cases->count; i++) {
         BinaryExpr* _case = (BinaryExpr*)cases->subexprs[i];
         
-        if (getToken(_case->left).type == TOKEN_WILDCARD) {
-            emitByte(compiler, OP_DUPE_TOP, getToken(_case->left).line);
+        if (getToken(compiler, _case->left).type == TOKEN_WILDCARD) {
+            emitByte(compiler, OP_DUPE_TOP, getToken(compiler, _case->left).line);
         }
         else {
             compileExpr(compiler, _case->left);
         }
         
-        int skipCase = emitJump(compiler, OP_TEST_CASE, getToken(_case->left).line);
+        int skipCase = emitJump(compiler, OP_TEST_CASE, getToken(compiler, _case->left).line);
 
         compileExpr(compiler, _case->right);
-        endings[endCount++] = emitJump(compiler, OP_JUMP, getToken(_case->right).line);
+        endings[endCount++] = emitJump(compiler, OP_JUMP, getToken(compiler, _case->right).line);
         patchJump(compiler, skipCase);
     }
 
@@ -802,8 +795,8 @@ static void compileMatch(Compiler* compiler, BinaryExpr* binary) {
 }
 
 static void bothInts(Compiler* compiler, BinaryExpr* binary, OpCode op, int offset) {
-    long long a = strtoll(getToken(binary->left).start + offset, NULL, 0);
-    long long b = strtoll(getToken(binary->right).start + offset, NULL, 0);
+    long long a = strtoll(getToken(compiler, binary->left).start + offset, NULL, 0);
+    long long b = strtoll(getToken(compiler, binary->right).start + offset, NULL, 0);
     long long c = 0;
 
     switch (op) {
@@ -816,19 +809,19 @@ static void bothInts(Compiler* compiler, BinaryExpr* binary, OpCode op, int offs
     }
 
     if (c <= UINT16_MAX && c >= 0) {
-        emitShort(compiler, OP_INT_P, c, getToken((Expr*)binary).line);
+        emitShort(compiler, OP_INT_P, c, getToken(compiler, (Expr*)binary).line);
     }
     else if (c < 0 && c >= (-UINT16_MAX)) {
-        emitShort(compiler, OP_INT_N, -c, getToken((Expr*)binary).line);
+        emitShort(compiler, OP_INT_N, -c, getToken(compiler, (Expr*)binary).line);
     }
     else {
-        emitConstant(compiler, INT_VAL(c), getToken((Expr*)binary).line);
+        emitConstant(compiler, INT_VAL(c), getToken(compiler, (Expr*)binary).line);
     }
 }
 
 static void bothFloats(Compiler* compiler, BinaryExpr* binary, OpCode op) {
-    double a = strtod(getToken(binary->left).start, NULL);
-    double b = strtod(getToken(binary->right).start, NULL);
+    double a = strtod(getToken(compiler, binary->left).start, NULL);
+    double b = strtod(getToken(compiler, binary->right).start, NULL);
     double c = 0;
 
     switch (op) {
@@ -844,24 +837,24 @@ static void bothFloats(Compiler* compiler, BinaryExpr* binary, OpCode op) {
     double fractional = c - integral;
 
     if (fractional == 0 && c <= UINT16_MAX && c >= 0) {
-        emitShort(compiler, OP_FLOAT_P, c, getToken((Expr*)binary).line);
+        emitShort(compiler, OP_FLOAT_P, c, getToken(compiler, (Expr*)binary).line);
     }
     else if (fractional == 0 && c < 0 && c >= (-UINT16_MAX)) {
-        emitShort(compiler, OP_FLOAT_N, -c, getToken((Expr*)binary).line);
+        emitShort(compiler, OP_FLOAT_N, -c, getToken(compiler, (Expr*)binary).line);
     }
     else {
-        emitConstant(compiler, FLOAT_VAL(c), getToken((Expr*)binary).line);
+        emitConstant(compiler, FLOAT_VAL(c), getToken(compiler, (Expr*)binary).line);
     }
 }
 
 static void optimiseArithmetic(Compiler* compiler, BinaryExpr* binary, OpCode op) {
-    if (getToken(binary->left).type == TOKEN_INTEGER && getToken(binary->right).type == TOKEN_INTEGER) {
+    if (getToken(compiler, binary->left).type == TOKEN_INTEGER && getToken(compiler, binary->right).type == TOKEN_INTEGER) {
         bothInts(compiler, binary, op, 0);
     }
-    else if (getToken(binary->left).type == TOKEN_BINARY && getToken(binary->right).type == TOKEN_BINARY) { 
+    else if (getToken(compiler, binary->left).type == TOKEN_BINARY && getToken(compiler, binary->right).type == TOKEN_BINARY) { 
         bothInts(compiler, binary, op, 2);
     }
-    else if (getToken(binary->left).type == TOKEN_FLOAT && getToken(binary->right).type == TOKEN_FLOAT) {
+    else if (getToken(compiler, binary->left).type == TOKEN_FLOAT && getToken(compiler, binary->right).type == TOKEN_FLOAT) {
         bothFloats(compiler, binary, op);
     }
     else {
@@ -870,9 +863,9 @@ static void optimiseArithmetic(Compiler* compiler, BinaryExpr* binary, OpCode op
 }
 
 static void optimiseConcatenation(Compiler* compiler, BinaryExpr* binary) {
-    if (getToken(binary->left).type == TOKEN_INTEGER && getToken(binary->right).type == TOKEN_INTEGER) {
-        long long a = strtoll(getToken(binary->left).start, NULL, 0);
-        long long b = strtoll(getToken(binary->right).start, NULL, 0);
+    if (getToken(compiler, binary->left).type == TOKEN_INTEGER && getToken(compiler, binary->right).type == TOKEN_INTEGER) {
+        long long a = strtoll(getToken(compiler, binary->left).start, NULL, 0);
+        long long b = strtoll(getToken(compiler, binary->right).start, NULL, 0);
         ObjList* list = newList(compiler->vm);
 
         long long c = a;
@@ -882,11 +875,11 @@ static void optimiseConcatenation(Compiler* compiler, BinaryExpr* binary) {
             c += dir;
         }
 
-        emitConstant(compiler, OBJ_VAL(list), getToken((Expr*)binary).line);
+        emitConstant(compiler, OBJ_VAL(list), getToken(compiler, (Expr*)binary).line);
     }
-    else if (getToken(binary->left).type == TOKEN_STRING && getToken(binary->right).type == TOKEN_STRING) {
-        Token a = getToken(binary->left);
-        Token b = getToken(binary->right);
+    else if (getToken(compiler, binary->left).type == TOKEN_STRING && getToken(compiler, binary->right).type == TOKEN_STRING) {
+        Token a = getToken(compiler, binary->left);
+        Token b = getToken(compiler, binary->right);
 
         int new_length = (a.length - 2) + (b.length - 2);
         char* heapChars = ALLOCATE(compiler->vm, new_length + 1, char);
@@ -896,7 +889,7 @@ static void optimiseConcatenation(Compiler* compiler, BinaryExpr* binary) {
     
         ObjString* c = takeString(compiler->vm, heapChars, new_length);
 
-        emitConstant(compiler, OBJ_VAL(c), getToken((Expr*)binary).line);
+        emitConstant(compiler, OBJ_VAL(c), getToken(compiler, (Expr*)binary).line);
     }
     else {
         plainBinary(compiler, binary, OP_CONCAT);
@@ -904,8 +897,8 @@ static void optimiseConcatenation(Compiler* compiler, BinaryExpr* binary) {
 }
 
 static void slice(Compiler* compiler, BinaryExpr* binary) {
-    if (getToken(binary->left).type == TOKEN_UNIT) {
-        if (getToken(binary->right).type == TOKEN_UNIT) {
+    if (getToken(compiler, binary->left).type == TOKEN_UNIT) {
+        if (getToken(compiler, binary->right).type == TOKEN_UNIT) {
             // start to end
             emitBytes(compiler, OP_SLICE, 0, getLastLine(compiler));
         }
@@ -917,7 +910,7 @@ static void slice(Compiler* compiler, BinaryExpr* binary) {
     }
     else {
         compileExpr(compiler, binary->left);
-        if (getToken(binary->right).type == TOKEN_UNIT) {
+        if (getToken(compiler, binary->right).type == TOKEN_UNIT) {
             // x to end
             emitBytes(compiler, OP_SLICE, 2, getLastLine(compiler));
         }
@@ -930,7 +923,7 @@ static void slice(Compiler* compiler, BinaryExpr* binary) {
 }
 
 static void subscripting(Compiler* compiler, BinaryExpr* binary) {
-    if (getToken(binary->right).type == TOKEN_COLON && binary->right->type == EXPR_BINARY) {
+    if (getToken(compiler, binary->right).type == TOKEN_COLON && binary->right->type == EXPR_BINARY) {
         compileExpr(compiler, binary->left);
         slice(compiler, (BinaryExpr*)binary->right);
     }
@@ -940,7 +933,7 @@ static void subscripting(Compiler* compiler, BinaryExpr* binary) {
 }
 
 static void getCustom(Compiler* compiler, Expr* expr) {
-    Token toLiteral = getToken(expr);
+    Token toLiteral = getToken(compiler, expr);
     toLiteral.type = TOKEN_IDENTIFIER;
     LiteralExpr operator = (LiteralExpr){(Expr){EXPR_LITERAL, NULL}, toLiteral};
     compileLiteral(compiler, &operator);
@@ -954,7 +947,7 @@ static void functionOperator(Compiler* compiler, BinaryExpr* binary) {
 }
 
 static void compileBinary(Compiler* compiler, BinaryExpr* binary) {
-    Token token = getToken((Expr*)binary);
+    Token token = getToken(compiler, (Expr*)binary);
     switch (token.type) {
         // call
         case TOKEN_LEFT_PAREN:      apply(compiler, binary); return;
@@ -1002,24 +995,24 @@ static void compileBinary(Compiler* compiler, BinaryExpr* binary) {
 
 
 // Quite Scrappy, but it's pretty much just constant folding
-static bool isConstant(Expr* expr) {
+static bool isConstant(Compiler* compiler, Expr* expr) {
     switch (expr->type) {
-    case EXPR_LITERAL:  return getToken(expr).type != TOKEN_IDENTIFIER &&
-                               getToken(expr).type != TOKEN_GLYPH;
-    case EXPR_UNARY:    return isConstant(((UnaryExpr*)expr)->operand) && 
-                                getToken(expr).type != TOKEN_PRINT     && 
-                                getToken(expr).type != TOKEN_PUT; // have to make sure you don't \
+    case EXPR_LITERAL:  return getToken(compiler, expr).type != TOKEN_IDENTIFIER &&
+                               getToken(compiler, expr).type != TOKEN_GLYPH;
+    case EXPR_UNARY:    return isConstant(compiler, ((UnaryExpr*)expr)->operand) && 
+                                getToken(compiler, expr).type != TOKEN_PRINT     && 
+                                getToken(compiler, expr).type != TOKEN_PUT; // have to make sure you don't \
                                                         compile 'print's and 'put's away
     case EXPR_BINARY: {
-        if (getToken(expr).type == TOKEN_EQUALS) {
-            return isConstant(((BinaryExpr*)expr)->right);
+        if (getToken(compiler, expr).type == TOKEN_EQUALS) {
+            return isConstant(compiler, ((BinaryExpr*)expr)->right);
         }
         else {
-            return isConstant(((BinaryExpr*)expr)->left) && isConstant(((BinaryExpr*)expr)->right);
+            return isConstant(compiler, ((BinaryExpr*)expr)->left) && isConstant(compiler, ((BinaryExpr*)expr)->right);
         }
     }
-    case EXPR_TERNARY:  return getToken(expr).type == TOKEN_COLON;
-    case EXPR_BLOCK:    return getToken(expr).type != TOKEN_LEFT_BRACE; // lists & maps are always truthy, \
+    case EXPR_TERNARY:  return getToken(compiler, expr).type == TOKEN_COLON;
+    case EXPR_BLOCK:    return getToken(compiler, expr).type != TOKEN_LEFT_BRACE; // lists & maps are always truthy, \
                                                         and blocks could contain side-effects
     }
 }
@@ -1040,22 +1033,22 @@ static bool isSure(TokenType type) {
     }
 }
 
-static bool exprIsTruthy(Expr* expr) {
+static bool exprIsTruthy(Compiler* compiler, Expr* expr) {
     switch (expr->type) {
-    case EXPR_LITERAL:  return getToken(expr).type != TOKEN_UNIT        &&
-                               getToken(expr).type != TOKEN_FALSE       &&
-                               getToken(expr).type != TOKEN_IDENTIFIER  &&
-                               getToken(expr).type != TOKEN_GLYPH;
-    case EXPR_UNARY:    return exprIsTruthy(((UnaryExpr*)expr)->operand); 
+    case EXPR_LITERAL:  return getToken(compiler, expr).type != TOKEN_UNIT        &&
+                               getToken(compiler, expr).type != TOKEN_FALSE       &&
+                               getToken(compiler, expr).type != TOKEN_IDENTIFIER  &&
+                               getToken(compiler, expr).type != TOKEN_GLYPH;
+    case EXPR_UNARY:    return exprIsTruthy(compiler, ((UnaryExpr*)expr)->operand); 
     case EXPR_BINARY:   {
-        if (getToken(expr).type == TOKEN_EQUALS) {
-            return exprIsTruthy(((BinaryExpr*)expr)->right);
+        if (getToken(compiler, expr).type == TOKEN_EQUALS) {
+            return exprIsTruthy(compiler, ((BinaryExpr*)expr)->right);
         }
         else {
-            return isSure(getToken(expr).type);
+            return isSure(getToken(compiler, expr).type);
         }
     }
-    case EXPR_TERNARY:  return getToken(expr).type == TOKEN_COLON;
+    case EXPR_TERNARY:  return getToken(compiler, expr).type == TOKEN_COLON;
     case EXPR_BLOCK:    return true; 
     }
 }
@@ -1068,9 +1061,9 @@ static void variableIf(Compiler* compiler, TernaryExpr* ternary) {
     // then branch
     compileExpr(compiler, ternary->left);
     
-    int skipElse = emitJump(compiler, OP_JUMP, getToken(ternary->right).line);
+    int skipElse = emitJump(compiler, OP_JUMP, getToken(compiler, ternary->right).line);
     patchJump(compiler, skipThen);
-    emitByte(compiler, OP_POP, getToken(ternary->right).line);
+    emitByte(compiler, OP_POP, getToken(compiler, ternary->right).line);
 
     // else branch
     compileExpr(compiler, ternary->right);
@@ -1079,12 +1072,12 @@ static void variableIf(Compiler* compiler, TernaryExpr* ternary) {
 }
 
 static void compileIf(Compiler* compiler, TernaryExpr* ternary) {
-    Token pivot = getToken(ternary->pivot);
+    Token pivot = getToken(compiler, ternary->pivot);
 
-    if (!isConstant(ternary->pivot)) {
+    if (!isConstant(compiler, ternary->pivot)) {
         variableIf(compiler, ternary);
     }
-    else if (exprIsTruthy(ternary->pivot)) {
+    else if (exprIsTruthy(compiler, ternary->pivot)) {
         compileExpr(compiler, ternary->left);
     }
     else {
@@ -1092,8 +1085,8 @@ static void compileIf(Compiler* compiler, TernaryExpr* ternary) {
     }
 }
 
-static bool isNamedFn(Expr* expr) {
-    return getToken(expr).type == TOKEN_COLON && expr->type == EXPR_TERNARY && getToken(((TernaryExpr*)expr)->left).type != TOKEN_WILDCARD;
+static bool isNamedFn(Compiler* compiler, Expr* expr) {
+    return getToken(compiler, expr).type == TOKEN_COLON && expr->type == EXPR_TERNARY && getToken(compiler, ((TernaryExpr*)expr)->left).type != TOKEN_WILDCARD;
 }
 
 // Could be f*ckn load-bearing printf()'s for I know
@@ -1107,7 +1100,7 @@ static void openBlock(Compiler* compiler, BlockExpr* block)  {
         //Token tmp = getToken(next);
         //printToken(&tmp);
 
-        if (getToken(next).type != TOKEN_EQUALS && !isNamedFn(next)) {
+        if (getToken(compiler, next).type != TOKEN_EQUALS && !isNamedFn(compiler, next)) {
             //printf("Emitting pop\n");
             emitByte(compiler, OP_POP, getLastLine(compiler));
         }
@@ -1121,16 +1114,16 @@ static void openBlock(Compiler* compiler, BlockExpr* block)  {
 
         compileExpr(compiler, last);
 
-        if (getToken(last).type == TOKEN_EQUALS || isNamedFn(last)) {
+        if (getToken(compiler, last).type == TOKEN_EQUALS || isNamedFn(compiler, last)) {
             emitByte(compiler, OP_DUPE_TOP, getLastLine(compiler));
         }
     }
 }
 
-static bool isFnName(Expr* expr) {
-    return  isTType(expr, TOKEN_IDENTIFIER) || 
-            isTType(expr, TOKEN_WILDCARD)   || 
-            isTType(expr, TOKEN_GLYPH);
+static bool isFnName(Compiler* compiler, Expr* expr) {
+    return  isTType(compiler, expr, TOKEN_IDENTIFIER) || 
+            isTType(compiler, expr, TOKEN_WILDCARD)   || 
+            isTType(compiler, expr, TOKEN_GLYPH);
 }
 
 static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
@@ -1138,15 +1131,15 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     printf("Starting fn compilation\n");
     #endif
 
-    Token fgjho = getToken(ternary->left);
+    Token fgjho = getToken(enclosing, ternary->left);
 
     #ifdef DEBUG_COMPILER_PROGRESS
     printf("fn name is ");
     printToken(&fgjho);
     #endif
 
-    if (!isFnName(ternary->left)) {
-        compilerError(enclosing, "Expected function identifier or wildcard, got %.*s", getToken(ternary->left).length, getToken(ternary->left).start);
+    if (!isFnName(enclosing, ternary->left)) {
+        compilerError(enclosing, "Expected function identifier or wildcard, got %.*s", getToken(enclosing, ternary->left).length, getToken(enclosing, ternary->left).start);
         return;
     }
 
@@ -1190,20 +1183,20 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     }
 
     // implicit returns
-    if (getToken(ternary->right).type != TOKEN_LEFT_BRACE) {
+    if (getToken(enclosing, ternary->right).type != TOKEN_LEFT_BRACE) {
         compileExpr(&compiler, ternary->right);
 
-        if (getToken(ternary->right).type == TOKEN_DOLLAR || getToken(ternary->right).type == TOKEN_LEFT_PAREN) {
+        if (getToken(enclosing, ternary->right).type == TOKEN_DOLLAR || getToken(enclosing, ternary->right).type == TOKEN_LEFT_PAREN) {
             currentChunk(&compiler)->code[currentChunk(&compiler)->count - 2] = (uint8_t)OP_TAIL_CALL;
         }
-        else if (getToken(ternary->right).type != TOKEN_RETURN) {
+        else if (getToken(enclosing, ternary->right).type != TOKEN_RETURN) {
             emitByte(&compiler, OP_RETURN, getLastLine(&compiler));
         }
     }
     else {
         BlockExpr* body = (BlockExpr*)ternary->right;
         openBlock(&compiler, body);
-        if (getToken(body->subexprs[body->count - 1]).type != TOKEN_RETURN) {
+        if (getToken(enclosing, body->subexprs[body->count - 1]).type != TOKEN_RETURN) {
             emitByte(&compiler, OP_RETURN, getLastLine(&compiler));
         }
     }
@@ -1211,10 +1204,10 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
 
     ObjFunction* func = endCompiler(&compiler);
     func->arity = args->count;
-    emitConstant(enclosing, OBJ_VAL(func), getToken((Expr*)ternary).line);
+    emitConstant(enclosing, OBJ_VAL(func), getToken(enclosing, (Expr*)ternary).line);
 
     if (compiler.upvalueCount > 0) {
-        int line = getToken((Expr*)ternary).line;
+        int line = getToken(enclosing, (Expr*)ternary).line;
         emitBytes(enclosing, OP_CLOSURE, (uint8_t)compiler.upvalueCount, line);
         for (int i = 0; i < compiler.upvalueCount; i++) {
             emitByte(enclosing, compiler.upvalues[i], line);
@@ -1228,7 +1221,7 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
 }
 
 static void compileTernary(Compiler* compiler, TernaryExpr* ternary) {
-    Token token = getToken((Expr*)ternary);
+    Token token = getToken(compiler, (Expr*)ternary);
     switch (token.type) {
     case TOKEN_IF:      compileIf(compiler, ternary); return;
     case TOKEN_COLON:   compileFunction(compiler, ternary); return;
@@ -1246,8 +1239,8 @@ static void codeBlock(Compiler* compiler, BlockExpr* block)  {
 
         compileExpr(compiler, next);
 
-        if (getToken(next).type != TOKEN_EQUALS && 
-            (getToken(next).type != TOKEN_COLON && getToken(((TernaryExpr*)next)->left).type != TOKEN_WILDCARD)) {
+        if (getToken(compiler, next).type != TOKEN_EQUALS && 
+            (getToken(compiler, next).type != TOKEN_COLON && getToken(compiler, ((TernaryExpr*)next)->left).type != TOKEN_WILDCARD)) {
             emitByte(compiler, OP_POP, getLastLine(compiler));
         }
     }
@@ -1257,8 +1250,8 @@ static void codeBlock(Compiler* compiler, BlockExpr* block)  {
     if (block->count != 0) {
         compileExpr(compiler, last);
 
-        if (getToken(last).type == TOKEN_EQUALS ||
-            (getToken(last).type == TOKEN_COLON && getToken(((TernaryExpr*)last)->left).type != TOKEN_WILDCARD)) {
+        if (getToken(compiler, last).type == TOKEN_EQUALS ||
+            (getToken(compiler, last).type == TOKEN_COLON && getToken(compiler, ((TernaryExpr*)last)->left).type != TOKEN_WILDCARD)) {
             emitByte(compiler, OP_DUPE_TOP, getLastLine(compiler));
         }
     }
@@ -1271,7 +1264,7 @@ static void list(Compiler* compiler, BlockExpr* block) {
         compileExpr(compiler, block->subexprs[i]);
     }
 
-    emitBytes(compiler, OP_LIST, (uint8_t)block->count, getToken((Expr*)block).line);
+    emitBytes(compiler, OP_LIST, (uint8_t)block->count, getToken(compiler, (Expr*)block).line);
 }
 
 static void map(Compiler* compiler, BlockExpr* block) {
@@ -1281,11 +1274,11 @@ static void map(Compiler* compiler, BlockExpr* block) {
         compileExpr(compiler, mapping->right);
     }
 
-    emitBytes(compiler, OP_MAP, (uint8_t)block->count, getToken((Expr*)block).line);
+    emitBytes(compiler, OP_MAP, (uint8_t)block->count, getToken(compiler, (Expr*)block).line);
 }
 
 static void compileBlock(Compiler* compiler, BlockExpr* block) {
-    Token token = getToken((Expr*)block);
+    Token token = getToken(compiler, (Expr*)block);
     switch (token.type) {
     case TOKEN_LEFT_PAREN:      list(compiler, block); return;
     case TOKEN_LEFT_BRACE:      codeBlock(compiler, block); return;
@@ -1298,7 +1291,7 @@ static void compileBlock(Compiler* compiler, BlockExpr* block) {
 static void compileExpr(Compiler* compiler, Expr* expression) {
     #ifdef DEBUG_COMPILER_PROGRESS
     printf("%s: About to compile %s ", getName(compiler), getExprName(expression->type));
-    Token tok = getToken(expression);
+    Token tok = getToken(compiler, expression);
     printToken(&tok);
     #endif
     switch (expression->type) {

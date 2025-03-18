@@ -1265,42 +1265,6 @@ InterpretResult run(VM* vm) {
             case OP_EQUALS: {
                 push(vm, BOOL_VAL(valuesEqual(pop(vm), pop(vm))));
                 break;
-            }    
-            case OP_FLOAT_CAST: {
-                if (!IS_ARITH(peek(vm, 0)) && !IS_CHAR(peek(vm, 0)) && !IS_BOOL(peek(vm, 0)) && !IS_UNIT(peek(vm, 0))) {
-                    runtimeError(vm, "Cannot cast non-scalar to float");
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-
-                Value value = pop(vm);
-
-                switch (value.type) {
-                case VAL_UNIT:      push(vm, FLOAT_VAL(0.0)); break;
-                case VAL_BOOL:      push(vm, FLOAT_VAL((double)AS_BOOL(value))); break;
-                case VAL_INT:       push(vm, FLOAT_VAL((double)AS_INT(value))); break;
-                case VAL_FLOAT:     push(vm, value); break;
-                case VAL_CHAR:      push(vm, FLOAT_VAL((double)AS_CHAR(value))); break;
-                }
-
-                break;
-            } 
-            case OP_INT_CAST: {
-                if (!IS_ARITH(peek(vm, 0)) && !IS_CHAR(peek(vm, 0)) && !IS_BOOL(peek(vm, 0)) && !IS_UNIT(peek(vm, 0))) {
-                    runtimeError(vm, "Cannot cast non-scalar to integer");
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-
-                Value value = pop(vm);
-
-                switch (value.type) {
-                case VAL_UNIT:      push(vm, INT_VAL(0)); break;
-                case VAL_BOOL:      push(vm, INT_VAL((long long)AS_BOOL(value))); break;
-                case VAL_INT:       push(vm, value); break;
-                case VAL_FLOAT:     push(vm, INT_VAL((long long)AS_FLOAT(value))); break;
-                case VAL_CHAR:      push(vm, INT_VAL((long long)AS_CHAR(value))); break;
-                }
-                
-                break;
             }
             case OP_CONSTRUCT: {
                 Value b = peek(vm, 0);

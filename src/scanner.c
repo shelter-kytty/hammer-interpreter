@@ -88,17 +88,7 @@ void printToken(const Token* token) {
         case TOKEN_PUT:             printf("put\n"); break;
         case TOKEN_RETURN:          printf("return\n"); break;
 
-        // Types :: 48 - 55
-        case TOKEN_BOOL_TN:         printf("type: Bool\n"); break;
-        case TOKEN_INT_TN:          printf("type: Int\n"); break;
-        case TOKEN_FLOAT_TN:        printf("type: Flt\n"); break;
-        case TOKEN_CHAR_TN:         printf("type: Char\n"); break;
-        case TOKEN_STR_TN:          printf("type: Str\n"); break;
-        case TOKEN_LIST_TN:         printf("type: List\n"); break;
-        case TOKEN_REC_TN:          printf("type: Rec\n"); break;
-        case TOKEN_UNIT_TN:         printf("type: Unit\n"); break;
-
-        // Control :: 56 - 59
+        // Control :: 48 - 51
         case TOKEN_BREAK:           printf("-break-\n"); break;
         case TOKEN_SOF:             printf("SOF\n"); break;
         case TOKEN_EOF:             printf("EOF\n"); break;
@@ -306,15 +296,6 @@ static TokenType idToken(Scanner* scanner, const char* key, int start, int lengt
 
 static TokenType identifierType(Scanner* scanner) {
     switch (scanner->start[0]) {
-    case 'B': return idToken(scanner, "ool", 1, 3, TOKEN_BOOL_TN);
-    case 'C': return idToken(scanner, "har", 1, 3, TOKEN_CHAR_TN);
-    case 'F': return idToken(scanner, "lt", 1, 2, TOKEN_FLOAT_TN);
-    case 'I': return idToken(scanner, "nt", 1, 2, TOKEN_INT_TN);
-    case 'L': return idToken(scanner, "ist", 1, 3, TOKEN_LIST_TN);
-    case 'R': return idToken(scanner, "ec", 1, 2, TOKEN_REC_TN);
-    case 'S': return idToken(scanner, "tr", 1, 2, TOKEN_STR_TN);
-    case 'U': return idToken(scanner, "nit", 1, 3, TOKEN_UNIT_TN);
-    
     case '_': return idToken(scanner, "", 1, 0, TOKEN_WILDCARD);
 
     case 'a': return idToken(scanner, "nd", 1, 2, TOKEN_AND);

@@ -39,16 +39,9 @@ typedef enum {
     TOKEN_CONS, TOKEN_CAR, TOKEN_CDR, 
     TOKEN_AND, TOKEN_OR, TOKEN_IN,
     TOKEN_PUT, TOKEN_PRINT, 
-    TOKEN_RETURN, 
+    TOKEN_RETURN,
 
-    // Types :: 57 - 64
-    TOKEN_BOOL_TN, 
-    TOKEN_INT_TN, TOKEN_FLOAT_TN, 
-    TOKEN_CHAR_TN, TOKEN_STR_TN, 
-    TOKEN_LIST_TN, TOKEN_REC_TN, 
-    TOKEN_UNIT_TN,
-
-    // Control :: 65 - 68
+    // Control :: 57 - 60
     TOKEN_BREAK, TOKEN_SOF, TOKEN_EOF, TOKEN_ERROR
 } TokenType;
 

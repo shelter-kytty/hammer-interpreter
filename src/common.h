@@ -21,13 +21,13 @@ typedef enum {
 #ifdef DEBUG
 /* Compilation info */
 //#define DEBUG_DISPLAY_TOKENS
-//#define DEBUG_DISPLAY_AST
-//#define DEBUG_COMPILER_PROGRESS
+#define DEBUG_DISPLAY_AST
+#define DEBUG_COMPILER_PROGRESS
 
 /* Runtime info */
 #define DEBUG_DISPLAY_PROGRAM
-//#define DEBUG_DISPLAY_INSTRUCTIONS
-//#define DEBUG_DISPLAY_STACK
+#define DEBUG_DISPLAY_INSTRUCTIONS
+#define DEBUG_DISPLAY_STACK
 //#define DEBUG_DISPLAY_TABLES
 //#define DEBUG_DISPLAY_STRINGS
 
@@ -37,10 +37,10 @@ typedef enum {
 #define DEBUG_STRESS_GC
 
 /* Miscellaneous info */
-//#define DEBUG_SCOPE_UPDATES
-//#define DEBUG_CHUNK_UPDATES
+#define DEBUG_SCOPE_UPDATES
+#define DEBUG_CHUNK_UPDATES
 //#define DEBUG_STRING_DETAILS
-#endif
+#endif //DEBUG
 // <------------------- DEBUGGING
 
 // USER OPTIONS ---------------->

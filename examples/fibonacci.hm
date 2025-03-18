@@ -89,7 +89,7 @@ lucas : n = 1.6180339887498948482^n / 2.2360679774998
 
 a5 = clock()
 
-print {Int lucas(80)}
+print lucas(80)
 
 b5 = clock()
 
@@ -148,8 +148,8 @@ fib_Max : n = {
         if I > 0 
         then
             if I % 2 == 0
-            then <- helper(Int {I / 2.0} ; F ; A#A)
-            else <- helper(Int {I / 2.0} ; F#A ; A#A)
+            then <- helper({I / 2} ; F ; A#A)
+            else <- helper({I / 2} ; F#A ; A#A)
         else
             F[2][2]
     }

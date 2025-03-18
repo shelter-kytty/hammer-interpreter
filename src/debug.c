@@ -80,8 +80,6 @@ const char* getInstructionName(int type) {
         case OP_DIFF:           return "OP_DIFF";
         case OP_DIFFEQ:         return "OP_DIFFEQ";
         case OP_EQUALS:         return "OP_EQUALS";
-        case OP_INT_CAST:       return "OP_INT_CAST";
-        case OP_FLOAT_CAST:     return "OP_FLOAT_CAST";
         case OP_CONSTRUCT:      return "OP_CONSTRUCT";
         case OP_CAR:            return "OP_CAR";
         case OP_CDR:            return "OP_CDR";
@@ -219,10 +217,6 @@ int disassembleInstruction(Chunk* chunk, int offset) {
             return simpleInstruction("OP_DIFFEQ", chunk, offset);
         case OP_EQUALS:
             return simpleInstruction("OP_EQUALS", chunk, offset);
-        case OP_INT_CAST:
-            return simpleInstruction("OP_INT_CAST", chunk, offset);
-        case OP_FLOAT_CAST:
-            return simpleInstruction("OP_FLOAT_CAST", chunk, offset);
         case OP_CONSTRUCT:
             return simpleInstruction("OP_CONSTRUCT", chunk, offset);
         case OP_CAR:
