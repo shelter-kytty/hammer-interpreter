@@ -190,6 +190,51 @@ bool printfNative(VM* vm, int argc, Value* argv) {
     return true;
 }
 
+bool printlnNative(VM* vm, int argc, Value* argv) {
+    if (!IS_STRING(argv[0])) {
+        runtimeError(vm, "Arg 1 of 'println' must be string");
+        return false;
+    }
+
+    const char* format = AS_CSTRING(argv[0]);
+    char* end;
+
+    while (*format != '\0') {
+        char next = *format;
+
+        if (next == '{' && isIntChar(format[1])) {
+            format++;
+
+            long slot = strtol(format, &end, 10);
+
+            if (slot > argc - 1) {
+                runtimeError(vm, "PRINTLN : Cannot index outside of args");
+                return false;
+            }
+
+            printValue(argv[slot]);
+
+            format = end;
+
+            if (*format != '}') {
+                runtimeError(vm, "PRINTLN : Expected '}' in format");
+                return false;
+            }
+            
+            format++;
+        }
+        else {
+            putchar(next);
+            format++;
+        }
+    }
+
+    putchar('\n');
+
+    returnNative(vm, argc, UNIT_VAL);
+    return true;
+}
+
 bool typeOfNative(VM* vm, int argc, Value* argv) {
     returnNative(vm, argc, INT_VAL(
         IS_OBJ(argv[0]) 
@@ -244,6 +289,37 @@ bool addOperator(VM* vm, int argc, Value* argv) {
     return true;
 }
 
+bool subOperator(VM* vm, int argc, Value* argv) {
+    Value a = argv[0];
+    Value b = argv[1];
+    Value c;
+    
+    if (!IS_ARITH(a) || !IS_ARITH(b)) {
+        runtimeError(vm, "SUB : Cannot perform op on %s and %s", getValName(a), getValName(b));
+        return false;
+    }
+
+    if (TYPES_EQUAL(a, b)) {
+        if (IS_INT(a)) {
+            c = INT_VAL(AS_INT(a) - AS_INT(b));
+        }
+        else {
+            c = FLOAT_VAL(AS_FLOAT(a) - AS_FLOAT(b));
+        }
+    }
+    else {
+        if (IS_INT(a)) {
+            c = FLOAT_VAL(AS_INT(a) - AS_FLOAT(b));
+        }
+        else {
+            c = FLOAT_VAL(AS_FLOAT(a) - AS_INT(b));
+        }
+    }
+
+    returnNative(vm, argc, c);
+    return true;
+}
+
 bool mulOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
@@ -269,6 +345,99 @@ bool mulOperator(VM* vm, int argc, Value* argv) {
         else {
             c = FLOAT_VAL(AS_FLOAT(a) * AS_INT(b));
         }
+    }
+
+    returnNative(vm, argc, c);
+    return true;
+}
+
+bool divOperator(VM* vm, int argc, Value* argv) {
+    Value a = argv[0];
+    Value b = argv[1];
+    Value c;
+    
+    if (!IS_ARITH(a) || !IS_ARITH(b)) {
+        runtimeError(vm, "MUL : Cannot perform op on %s and %s", getValName(a), getValName(b));
+        return false;
+    }
+
+    if (TYPES_EQUAL(a, b)) {
+        if (IS_INT(a)) {
+            c = INT_VAL(AS_INT(a) / AS_INT(b));
+        }
+        else {
+            c = FLOAT_VAL(AS_FLOAT(a) / AS_FLOAT(b));
+        }
+    }
+    else {
+        if (IS_INT(a)) {
+            c = FLOAT_VAL(AS_INT(a) / AS_FLOAT(b));
+        }
+        else {
+            c = FLOAT_VAL(AS_FLOAT(a) / AS_INT(b));
+        }
+    }
+
+    returnNative(vm, argc, c);
+    return true;
+}
+
+bool powOperator(VM* vm, int argc, Value* argv) {
+    Value a = argv[0];
+    Value b = argv[1];
+    Value c;
+    
+    if (!IS_ARITH(a) || !IS_ARITH(b)) {
+        runtimeError(vm, "POW : Cannot perform op on %s and %s", getValName(a), getValName(b));
+        return false;                  
+    }                                                    
+
+    if (TYPES_EQUAL(a, b)) {
+        if (IS_INT(a)) {
+            c = INT_VAL(fmodl(AS_INT(a), AS_INT(b)));
+        }
+        else {
+            c = FLOAT_VAL(fmod(AS_FLOAT(a), AS_FLOAT(b)));
+        }                      
+    }                          
+    else {                     
+        if (IS_INT(a)) {       
+            c = FLOAT_VAL(fmod((double)AS_INT(a), AS_FLOAT(b)));  
+        }                      
+        else {                 
+            c = FLOAT_VAL(fmod(AS_FLOAT(a), (double)AS_INT(b)));  
+        }              
+    }
+
+    returnNative(vm, argc, c);
+    return true;
+}
+
+bool modOperator(VM* vm, int argc, Value* argv) {
+    Value b = pop(vm);
+    Value a = pop(vm);
+    Value c;                        
+    
+    if (!IS_ARITH(a) || !IS_ARITH(b)) {
+        runtimeError(vm, "MOD : Cannot perform op on %s and %s", getValName(a), getValName(b));
+        return false;                  
+    }                                                    
+
+    if (TYPES_EQUAL(a, b)) {
+        if (IS_INT(a)) {
+            c = INT_VAL(powl(AS_INT(a), AS_INT(b)));
+        }
+        else {
+            c = FLOAT_VAL(powf(AS_FLOAT(a), AS_FLOAT(b)));
+        }
+    }
+    else {                     
+        if (IS_INT(a)) {       
+            c = FLOAT_VAL(powf((double)AS_INT(a), AS_FLOAT(b)));  
+        }                      
+        else {                 
+            c = FLOAT_VAL(powf(AS_FLOAT(a), (double)AS_INT(b)));  
+        }              
     }
 
     returnNative(vm, argc, c);
@@ -601,6 +770,7 @@ void initVM(VM* vm) {
     defineNative(vm, "clock", clockNative, 0);
     defineNative(vm, "exit", exitNative, 1);
     defineNative(vm, "printf", printfNative, -2);
+    defineNative(vm, "println", printlnNative, -2);
     defineNative(vm, "typeOf", typeOfNative, 1);
     defineNative(vm, "len", lenNative, 1);
     defineNative(vm, "rev", revNative, 1);
@@ -616,7 +786,11 @@ void initVM(VM* vm) {
     // TODO: Implement these as actual addition, subtraction,
     // cons, etc. operators to make the glyph system work better
     defineNative(vm, "+", addOperator, 2);
+    defineNative(vm, "-", subOperator, 2);
     defineNative(vm, "*", mulOperator, 2);
+    defineNative(vm, "/", divOperator, 2);
+    defineNative(vm, "%%", modOperator, 2);
+    defineNative(vm, "^", powOperator, 2);
     defineNative(vm, "$", applyOperator, 2);
 }
 
@@ -809,6 +983,8 @@ static bool callValue(VM* vm, Value caller, uint8_t argCount) {
     }
 }
 
+// TODO: Add support for upvalues from greater scopes
+// Might need to change this for that
 static bool retrieveUpvalue(VM* vm, uint8_t depth, Value* returnal) {
     ObjClosure* closure = currentFrame(vm)->closure;
 
@@ -1155,7 +1331,7 @@ InterpretResult run(VM* vm) {
                 Value a = pop(vm);                                                   
                 
                 if (!IS_ARITH(a) || !IS_ARITH(b)) {
-                    runtimeError(vm, "POW : Cannot perform op on %s and %s", getValName(a), getValName(b));
+                    runtimeError(vm, "MOD : Cannot perform op on %s and %s", getValName(a), getValName(b));
                     return INTERPRET_RUNTIME_ERROR;                  
                 }                                                    
 
@@ -1420,6 +1596,9 @@ InterpretResult run(VM* vm) {
                 
                 break;
             }
+            // TODO: Add support for upvalues from greater scopes
+            // OP_CLOSURE (or a second accompanying OP) could insert greater-scoped upvalues into the closures upvalue list
+            // The calling function will likely need to itself be a closure
             case OP_CLOSURE: {
                 uint8_t count = READ_BYTE(vm);
                 if (!IS_FUNC(peek(vm, 0))) {
@@ -1427,20 +1606,66 @@ InterpretResult run(VM* vm) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
 
+                // recursive local functions close over themselves, so the closure
+                // needs to be on the stack`
                 Value func = peek(vm, 0);
                 ObjClosure* closure = newClosure(vm, AS_FUNC(func), count);
-                
-                // recursive local functions close over themselves, so the closure
-                // needs to be on the stack
                 pop(vm);
                 push(vm, OBJ_VAL(closure));
+
+                ObjClosure* current = currentFrame(vm)->closure;
+                
                 
                 for (int i = 0; i < count; i++) {
+                    bool isLocal = (bool)READ_BYTE(vm);
                     uint8_t depth = READ_BYTE(vm);
-                    closure->upvalues[i] = currentFrame(vm)->slots[depth];
-                    closure->depths[i] = depth;
+                    
+                    if (isLocal) {
+                        closure->upvalues[i] = currentFrame(vm)->slots[depth];
+                    } else {
+                        for (int j = 0; j < current->upvalueCount; j++) {
+                            if (current->depths[j] == depth){
+                                closure->upvalues[i] = current->upvalues[j];
+                            }
+                        }
+                    }
+
+                    closure->depths[i] = (uint8_t)i;
                 }
 
+
+                break;
+            }
+            case OP_FROM_GREATER: {
+                if (!IS_CLOSURE(peek(vm, 0))) {
+                    runtimeError(vm, "FROM : Expected closure, got %s", getValName(peek(vm, 0)));
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                
+                uint8_t count = READ_BYTE(vm);
+                ObjClosure* cur_closure = currentFrame(vm)->closure;
+                ObjClosure* new_closure = AS_CLOSURE(peek(vm, 0));
+                
+                if (cur_closure == NULL) {
+                    const char* name = currentFrame(vm)->function->name->chars;
+                    runtimeError(vm, "FROM : No upvalues; %s is not a closure", name != NULL ? name : "<lmbd>");
+                    return false;
+                }
+
+                for (int i = 0; i < count; i++) {
+                    uint8_t depth = READ_BYTE(vm);
+                    for (int n = 0; n < cur_closure->upvalueCount; n++) {
+                        if (cur_closure->depths[n] == depth) {
+                            new_closure->upvalues[i] = cur_closure->upvalues[n];
+                            new_closure->depths[i] = n;
+                        }
+                    }
+                }
+                
+                /* uint8_t old = new_closure->upvalueCount;
+                new_closure->upvalueCount = old + count;
+                new_closure->upvalues = ALLOCATE(vm, old + count);
+                new_closure->depths = ALLOCATE(vm, old + count); */
 
                 break;
             }

@@ -15,7 +15,13 @@
 typedef struct {
     ObjString* name;
     int depth;
+    bool isCaptured;
 } Local;
+
+typedef struct {
+    bool isLocal;
+    uint8_t index;
+} Upvalue;
 
 typedef enum {
     FUN_SCRIPT,
@@ -27,10 +33,10 @@ struct Compiler {
     // Static
     int scopeDepth;
     int localCount;
-    Local locals[STACK_SIZE];
+    Local locals[UINT8_COUNT];
     FunctionType type;
     int upvalueCount;
-    uint8_t upvalues[STACK_SIZE];
+    Upvalue upvalues[UINT8_COUNT];
 
     // Rigid
     ObjFunction* function;

@@ -14,9 +14,6 @@ typedef enum {
     MEM_WHITE,
 } Colour;
 
-#define FRAME_MAX 384
-#define STACK_SIZE 256 * FRAME_MAX
-
 // DEBUGGING ------------------->
 #ifdef DEBUG
 /* Compilation info */
@@ -37,8 +34,8 @@ typedef enum {
 #define DEBUG_STRESS_GC
 
 /* Miscellaneous info */
-#define DEBUG_SCOPE_UPDATES
-#define DEBUG_CHUNK_UPDATES
+//#define DEBUG_SCOPE_UPDATES
+//#define DEBUG_CHUNK_UPDATES
 //#define DEBUG_STRING_DETAILS
 #endif //DEBUG
 // <------------------- DEBUGGING
@@ -58,5 +55,9 @@ typedef enum {
 // <---------------- USER OPTIONS
 
 #define simple static inline
+
+#define UINT8_COUNT (UINT8_MAX + 1)
+#define FRAME_MAX 128
+#define STACK_SIZE UINT8_COUNT * FRAME_MAX
 
 #endif

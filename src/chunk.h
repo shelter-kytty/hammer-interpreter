@@ -58,6 +58,7 @@ typedef enum {
     OP_SWAP_TOP,        // 0x31
     OP_SLICE,           // 0x32
     OP_IN,              // 0x33
+    OP_FROM_GREATER,    // 0x34
 } OpCode; 
 
 typedef struct {

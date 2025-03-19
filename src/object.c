@@ -193,6 +193,22 @@ void printObject(Value value) {
             ObjClosure* closure = AS_CLOSURE(value);
             if (closure->function->name != NULL) {
                 printf("<clsr %s %d : %d>", closure->function->name->chars, closure->upvalueCount, closure->function->arity);
+                /* #ifdef DEBUG
+                printf("{");
+                if (closure->upvalueCount > 0) {
+                    printValue(closure->upvalues[0]);
+                    printf("->%d", closure->depths[0]);
+                    for (int i = 1; i < closure->upvalueCount; i++) {
+                        printf(" ; ");
+                        if (IS_CLOSURE(closure->upvalues[i]))
+                            printf("Another Closure");
+                        else
+                            printValue(closure->upvalues[i]);
+                        printf("->%d", closure->depths[i]);
+                    }
+                }
+                printf("}");
+                #endif //DEBUG */
             } else {
                 printf("<clsr %d : %d>", closure->upvalueCount, closure->function->arity);
             }

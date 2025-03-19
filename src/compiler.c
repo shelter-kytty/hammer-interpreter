@@ -182,6 +182,7 @@ static void addLocal(Compiler* compiler, ObjString* name, int line) {
     Local* local = &compiler->locals[compiler->localCount++];
     local->name = name;
     local->depth = -1;
+    local->isCaptured = false;
 }
 
 static void fixLocal(Compiler* compiler, ObjString* name, int line) {
@@ -218,52 +219,127 @@ static int resolveLocal(Compiler* compiler, Token token) {
     return -1;
 }
 
+
 /*
 static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
     int upvalueCount = compiler->function->upvalueCount;
-
+    
+    // Check if the upvalue has already been tagged (indexes and isLocal are equal)
+    // If so return its position
     for (int i = 0; i < upvalueCount; i++) {
         Upvalue* upvalue = &compiler->upvalues[i];
         if (upvalue->index == index && upvalue->isLocal == isLocal) {
             return i;
         }
     }
-
+    
+    // exit if too many upvalues
     if (upvalueCount == UINT8_COUNT) {
         error(compiler->parser, "Too many upvalues in function");
         return 0;
     }
-
+    
+    // Add upvalue if it doesnt already exist
+    // Return the new upvalue position
     compiler->upvalues[upvalueCount].isLocal = isLocal;
     compiler->upvalues[upvalueCount].index = index;
     return compiler->function->upvalueCount++;
 }
-*/
 
-
-static int resolveUpvalueNEEDSCHANGESTOWORK(Compiler* compiler, Token name) {
+//original CLox implementation
+static int resolveUpvalueOg(Compiler* compiler, Token* name) {
+    // Check for outer scope to pull upvalue from
+    // If not, return
     if (compiler->enclosing == NULL) return -1;
 
-    int local = resolveLocal(compiler->enclosing, name);
+    // Check for upvalue in the immediate local scope
+    // Return result of addUpvalue (either marks upvalue or returns existing one)
+    int local = resolveLocalOg(compiler->enclosing, name);
     if (local != -1) {
-        return compiler->enclosing->localCount - local;
+        compiler->enclosing->locals[local].isCaptured = true;
+        return addUpvalue(compiler, (uint8_t)local, true);
     }
 
-    int upvalue = resolveUpvalueNEEDSCHANGESTOWORK(compiler->enclosing, name);
+    // Recurse, checking the greater scopes for their upvalues/locals
+    // Return result of addUpvalue (now scanning for non-local upvalues)
+    int upvalue = resolveUpvalueOg(compiler->enclosing, name);
     if (upvalue != -1) {
-        return compiler->enclosing->localCount + upvalue;
+        return addUpvalue(compiler, (uint8_t)upvalue, false);
     }
 
     return -1;
 }
 
+static int resolveUpvalueNEEDSCHANGESTOWORK(Compiler* compiler, Token name) {
+    // Check if there is an outer scope
+    if (compiler->enclosing == NULL) return -1;
+    
+    // Check if the upvalue exists in the immediate scope
+    // Return it's offset from the top of the local stack if so
+    int local = resolveLocal(compiler->enclosing, name);
+    if (local != -1) {
+        return compiler->enclosing->localCount - local;
+    }
+    
+    // Run this function recursively, checking to see if the outer function's scope
+    // contains the upvalue were looking for
+    // Return its offset + the enclosing functions local count if so
+    // Since the offset is from the top of the local stack, we need to account for
+    // the enclosing functions' local stacks too
+    int upvalue = resolveUpvalueNEEDSCHANGESTOWORK(compiler->enclosing, name);
+    if (upvalue != -1) {
+        return compiler->enclosing->localCount + upvalue;
+    }
+    
+    return -1;
+}
+*/
 
+static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
+    int upvalueCount = compiler->upvalueCount;
+    
+    // Check if the upvalue has already been tagged (indeces and isLocal are equal)
+    // If so return its position
+    for (int i = 0; i < upvalueCount; i++) {
+        Upvalue upvalue = compiler->upvalues[i];
+        if (upvalue.index == index && upvalue.isLocal == isLocal) {
+            printf("Found upvalue at index %d, islocal = %d\n", upvalue.index, upvalue.isLocal);
+            return i;
+        }
+    }
+    
+    // exit if too many upvalues
+    if (upvalueCount == UINT8_COUNT) {
+        compilerError(compiler, "Function has reached upvalue limit");
+        return -1;
+    }
+    
+    // Add upvalue if it doesnt already exist
+    // Return the new upvalue position
+    printf("New upvalue at index %d, islocal = %d\n", index, isLocal);
+    compiler->upvalues[upvalueCount].isLocal = isLocal;
+    compiler->upvalues[upvalueCount].index = index;
+    return compiler->upvalueCount++;
+}
+
+// TODO: Add support for upvalues from greater scopes
+// Obviously this will need some tweaking
+// Probably to something like the commented out functions above,,, crazy that :p
 static int resolveUpvalue(Compiler* compiler, Token name) {
     if (compiler->enclosing == NULL) return -1;
 
-    int outer = resolveLocal(compiler->enclosing, name);
-    if (outer != -1) {
-        return outer;
+    int immediate = resolveLocal(compiler->enclosing, name);
+    if (immediate != -1) {
+        printf("Upvalue in immediate scope at %d\n", immediate);
+        compiler->enclosing->locals[immediate].isCaptured = true;
+        return addUpvalue(compiler, (uint8_t)immediate, true);
+    }
+
+    int greater = resolveUpvalue(compiler->enclosing, name);
+    if (greater != -1) {
+        int added = addUpvalue(compiler, (uint8_t)greater, false);
+        printf("Upvalue in greater scope at %d\n", greater);
+        return added;
     }
     
     return -1;
@@ -384,6 +460,7 @@ static void fString(Compiler* compiler, Token oldStr) {
             case 'b':  ptr++; newStr[trueLen] = '\b'; break; 
             case 'f':  ptr++; newStr[trueLen] = '\f'; break; 
             case '\n': ptr++; trueLen--; break;
+            default: break;
             }
 
             continue;
@@ -401,6 +478,9 @@ static void fString(Compiler* compiler, Token oldStr) {
     emitConstant(compiler, OBJ_VAL(takeString(compiler->vm, trueStr, trueLen)), oldStr.line);
 }
 
+// TODO: Add support for upvalues from greater scopes
+// I dont think this will need any changes? Depending on how i end up implementing
+// the upvalue resolution later/earlier in the compilation unit
 static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
     Token token = getToken(compiler, (Expr*)literal);
     if (token.type == TOKEN_WILDCARD) {
@@ -414,7 +494,6 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
         } 
         else if ((spot = resolveUpvalue(compiler, token)) != -1) {
             emitBytes(compiler, OP_UPVALUE, (uint8_t)spot, token.line);
-            compiler->upvalues[compiler->upvalueCount++] = spot;
         }
         else {
             ObjString* name = copyString(compiler->vm, token.start, token.length);
@@ -432,7 +511,6 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
         } 
         else if ((spot = resolveUpvalue(compiler, glyph)) != -1) {
             emitBytes(compiler, OP_UPVALUE, (uint8_t)spot, glyph.line);
-            compiler->upvalues[compiler->upvalueCount++] = spot;
         }
         else {
             ObjString* name = copyString(compiler->vm, glyph.start, glyph.length);
@@ -452,6 +530,7 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
             case TOKEN_TRUE:           emitByte (compiler, OP_TRUE, token.line);    return;
             case TOKEN_FALSE:          emitByte (compiler, OP_FALSE, token.line);   return;
             case TOKEN_UNIT:           emitByte (compiler, OP_UNIT, token.line);    return;
+            default: break;
         }
     }
 
@@ -529,6 +608,7 @@ static void compileUnary(Compiler* compiler, UnaryExpr* unary) {
     case TOKEN_PRINT:       plainUnary(compiler, unary, OP_PRINT);      return;
     case TOKEN_PUT:         plainUnary(compiler, unary, OP_PUT);        return;
     case TOKEN_QUESTION:    plainUnary(compiler, unary, OP_TRUTHY);     return;
+    default: break;
     }
 
     compilerError(compiler, "Invalid expression at %.*s", token.length, token.start);
@@ -806,6 +886,7 @@ static void bothInts(Compiler* compiler, BinaryExpr* binary, OpCode op, int offs
         case OP_DIVIDE:     c = a / b; break;
         case OP_MODULO:     c = a % b; break;
         case OP_EXPONENT:   c = (long long)pow((double)a, (double)b); break;
+        default: break;
     }
 
     if (c <= UINT16_MAX && c >= 0) {
@@ -831,6 +912,7 @@ static void bothFloats(Compiler* compiler, BinaryExpr* binary, OpCode op) {
         case OP_DIVIDE:     c = a / b; break;
         case OP_MODULO:     c = fmod(a, b); break;
         case OP_EXPONENT:   c = pow(a, b); break;
+        default: break;
     }
 
     size_t integral = (size_t)c;
@@ -988,6 +1070,7 @@ static void compileBinary(Compiler* compiler, BinaryExpr* binary) {
         case TOKEN_MATCH:           compileMatch(compiler, binary); return;
 
         case TOKEN_IN:              plainBinary(compiler, binary, OP_IN); return;
+        default: break;
     }
 
     compilerError(compiler, "Invalid expression at %.*s", token.length, token.start);
@@ -1050,6 +1133,7 @@ static bool exprIsTruthy(Compiler* compiler, Expr* expr) {
     }
     case EXPR_TERNARY:  return getToken(compiler, expr).type == TOKEN_COLON;
     case EXPR_BLOCK:    return true; 
+    default: break;
     }
 }
 
@@ -1128,13 +1212,9 @@ static bool isFnName(Compiler* compiler, Expr* expr) {
 
 static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     #ifdef DEBUG_COMPILER_PROGRESS
-    printf("Starting fn compilation\n");
-    #endif
-
-    Token fgjho = getToken(enclosing, ternary->left);
-
-    #ifdef DEBUG_COMPILER_PROGRESS
+    printf("Starting fn compilation\n");    
     printf("fn name is ");
+    Token fgjho = getToken(enclosing, ternary->left);
     printToken(&fgjho);
     #endif
 
@@ -1179,8 +1259,12 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     for (int i = 0; i < args->count; i++) {
         LiteralExpr* literal = (LiteralExpr*)args->subexprs[i];
         Token token = literal->token;
-        compiler.locals[compiler.localCount++] = (Local){copyString(compiler.vm, token.start, token.length), compiler.scopeDepth};
+        compiler.locals[compiler.localCount++] = (Local){copyString(compiler.vm, token.start, token.length), compiler.scopeDepth, false};
     }
+
+    #ifdef DEBUG_COMPILER_PROGRESS
+    printf("Compiled fn args\n");
+    #endif
 
     // implicit returns
     if (getToken(enclosing, ternary->right).type != TOKEN_LEFT_BRACE) {
@@ -1201,18 +1285,31 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
         }
     }
 
+    #ifdef DEBUG_COMPILER_PROGRESS
+    printf("Compiled fn body\n");
+    #endif
 
     ObjFunction* func = endCompiler(&compiler);
     func->arity = args->count;
     emitConstant(enclosing, OBJ_VAL(func), getToken(enclosing, (Expr*)ternary).line);
 
+    // TODO: Add support for upvalues from greater scopes
+    // When creating a closure, the surrounding function will have to become a closure and
+    // reach into its parent scope for upvalues that the end-closure is requesting, and 
+    // carry them for it into the runtime, if there are any.
+    // Push unresolved upvalues to a list in the enclosing function
     if (compiler.upvalueCount > 0) {
         int line = getToken(enclosing, (Expr*)ternary).line;
-        emitBytes(enclosing, OP_CLOSURE, (uint8_t)compiler.upvalueCount, line);
+
+        emitBytes(enclosing, OP_CLOSURE, compiler.upvalueCount, line);
+
         for (int i = 0; i < compiler.upvalueCount; i++) {
-            emitByte(enclosing, compiler.upvalues[i], line);
+            emitByte(enclosing, compiler.upvalues[i].isLocal ? 1 : 0, line);
+            emitByte(enclosing, compiler.upvalues[i].index, line);
         }
     }
+
+    printf("Emitted %d upvalues\n", compiler.upvalueCount);
 
     if (leftHand->token.type != TOKEN_WILDCARD && enclosing->scopeDepth == 0) {
         uint8_t spot = makeConstant(enclosing, OBJ_VAL(name));
@@ -1221,11 +1318,17 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
 }
 
 static void compileTernary(Compiler* compiler, TernaryExpr* ternary) {
-    Token token = getToken(compiler, (Expr*)ternary);
+    printf("Compiling Ternary: %p %p\n", (void*)compiler, (void*)ternary);
+
+    Token token = ternary->token;
+    
     switch (token.type) {
-    case TOKEN_IF:      compileIf(compiler, ternary); return;
-    case TOKEN_COLON:   compileFunction(compiler, ternary); return;
+        case TOKEN_IF:      compileIf(compiler, ternary); return;
+        case TOKEN_COLON:   compileFunction(compiler, ternary); return;
+        default: break;
     }
+    
+    printToken(&token);
 
     compilerError(compiler, "Invalid expression at %.*s", token.length, token.start);
 }
@@ -1290,9 +1393,9 @@ static void compileBlock(Compiler* compiler, BlockExpr* block) {
 
 static void compileExpr(Compiler* compiler, Expr* expression) {
     #ifdef DEBUG_COMPILER_PROGRESS
-    printf("%s: About to compile %s ", getName(compiler), getExprName(expression->type));
-    Token tok = getToken(compiler, expression);
-    printToken(&tok);
+    printf("%s: About to compile %s\n", getName(compiler), getExprName(expression->type));
+    // Token tok = getToken(compiler, expression);
+    // printToken(&tok);
     #endif
     switch (expression->type) {
         case EXPR_LITERAL:  {
@@ -1324,6 +1427,8 @@ static void compileExpr(Compiler* compiler, Expr* expression) {
             compileBlock(compiler, block);
             break;
         }
+        default: 
+            break;
     }
 }
 

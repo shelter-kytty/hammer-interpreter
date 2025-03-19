@@ -8,6 +8,14 @@
 #include "vm.h"
 #include "ast.h"
 
+// TODO: Add support for upvalues from greater scopes
+// Need to make it so upvalues are properly tracked and can be captured by 
+// successive functions closing over the required values before passing them on
+// to their closures at runtime
+// TODO: Get repl working again
+// Idk itd be??? nice??? i guess
+// good for debugging some stuff
+
 
 static void repl() {
     //VM vm;

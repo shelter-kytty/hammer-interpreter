@@ -106,6 +106,7 @@ const char* getInstructionName(int type) {
         case OP_CHAR:           return "OP_CHAR";
         case OP_COMPOSE:        return "OP_COMPOSE";
         case OP_SLICE:          return "OP_SLICE";
+        case OP_FROM_GREATER:   return "OP_FROM_GREATER";
         default:                return "UNKNOWN_OP";
     }
 }
@@ -141,8 +142,17 @@ static int simpleInstruction(const char* name, Chunk* chunk, int offset) {
 
 static int variadicInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t constant = chunk->code[offset];
-    uint8_t count = chunk->code[offset + 1];
-    printf("%-16s %02d %d\n", name, constant, count);
+    uint8_t count = chunk->code[offset + 1] * 2;
+    printf("%-16s %02d %d  ", name, constant, count);
+    if (count > 0) {
+        printf("[ ");
+        printf("%d", chunk->code[offset + 2]);
+        for (int i = 1; i < count; i++){
+            printf(" ; %d", chunk->code[offset + 2 + i]);
+        }
+        printf(" ]");
+    }
+    printf("\n");
     return offset + count + 2;
 }
 
@@ -271,6 +281,8 @@ int disassembleInstruction(Chunk* chunk, int offset) {
             return simpleInstruction("OP_COMPOSE", chunk, offset);
         case OP_SLICE:
             return doubleInstruction("OP_SLICE", chunk, offset);
+        case OP_FROM_GREATER:
+            return variadicInstruction("OP_FROM_GREATER", chunk, offset);
         default:
             return simpleInstruction("UNKNOWN_OP", chunk, offset);
     }

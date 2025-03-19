@@ -35,7 +35,7 @@ EXE  = $(BLD_DIR)/$(TARGET)
 .PHONY: all debug release clean prep
 
 
-all: prep clean debug
+all: prep clean debug release
 
 
 debug: BLD_DIR = $(DBG_DIR)
