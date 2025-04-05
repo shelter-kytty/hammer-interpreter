@@ -314,9 +314,12 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
         return -1;
     }
     
+    #ifdef DEBUG_UPVALUE_INFO
+    printf("New upvalue at index %d, islocal = %d\n", index, isLocal);
+    #endif
+    
     // Add upvalue if it doesnt already exist
     // Return the new upvalue position
-    printf("New upvalue at index %d, islocal = %d\n", index, isLocal);
     compiler->upvalues[upvalueCount].isLocal = isLocal;
     compiler->upvalues[upvalueCount].index = index;
     return compiler->upvalueCount++;
@@ -330,7 +333,9 @@ static int resolveUpvalue(Compiler* compiler, Token name) {
 
     int immediate = resolveLocal(compiler->enclosing, name);
     if (immediate != -1) {
+        #ifdef DEBUG_UPVALUE_INFO
         printf("Upvalue in immediate scope at %d\n", immediate);
+        #endif
         compiler->enclosing->locals[immediate].isCaptured = true;
         return addUpvalue(compiler, (uint8_t)immediate, true);
     }
@@ -338,7 +343,9 @@ static int resolveUpvalue(Compiler* compiler, Token name) {
     int greater = resolveUpvalue(compiler->enclosing, name);
     if (greater != -1) {
         int added = addUpvalue(compiler, (uint8_t)greater, false);
+        #ifdef DEBUG_UPVALUE_INFO
         printf("Upvalue in greater scope at %d\n", greater);
+        #endif
         return added;
     }
     
@@ -1309,7 +1316,9 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
         }
     }
 
+    #ifdef DEBUG_UPVALUE_INFO
     printf("Emitted %d upvalues\n", compiler.upvalueCount);
+    #endif
 
     if (leftHand->token.type != TOKEN_WILDCARD && enclosing->scopeDepth == 0) {
         uint8_t spot = makeConstant(enclosing, OBJ_VAL(name));
@@ -1318,8 +1327,6 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
 }
 
 static void compileTernary(Compiler* compiler, TernaryExpr* ternary) {
-    printf("Compiling Ternary: %p %p\n", (void*)compiler, (void*)ternary);
-
     Token token = ternary->token;
     
     switch (token.type) {

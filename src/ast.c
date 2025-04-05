@@ -399,37 +399,6 @@ static void separatedArgs(ProgramTree* tree, BlockExpr* block, TokenType end, Pr
     }
 }
 
-// Make (a b c) a list ^_^
-static Expr* grouping(ProgramTree* tree, Expr* last) {
-    Token open = advance(tree);
-    
-    if (match(tree, TOKEN_RIGHT_PAREN)) {
-        LiteralExpr* unit = Literal(tree, (Token){TOKEN_UNIT, open.start, open.length, open.line});
-        return (Expr*)unit;
-    }
-
-    if (match(tree, TOKEN_SEMICOLON) || match(tree, TOKEN_BREAK)) {
-        BlockExpr* list = Block(tree, open);
-        separatedArgs(tree, list, TOKEN_RIGHT_PAREN, PREC_ASSIGNMENT);
-        consume(tree, TOKEN_RIGHT_PAREN, "Expected ')' after list");
-        return (Expr*)list;
-    }
-
-    Expr* express = expression(tree, PREC_ASSIGNMENT);
-
-    if (getRule(getToken(tree).type)->head != NULL || match(tree, TOKEN_SEMICOLON) || match(tree, TOKEN_BREAK)) {
-        BlockExpr* list = Block(tree, open);
-        writeExpr(list, express);
-        separatedArgs(tree, list, TOKEN_RIGHT_PAREN, PREC_ASSIGNMENT);
-        consume(tree, TOKEN_RIGHT_PAREN, "Expected ')' after list");
-        return (Expr*)list;
-    }
-
-
-    consume(tree, TOKEN_RIGHT_PAREN, "Expected ')' after grouping");
-    return express;
-}
-
 static void mapArgs(ProgramTree* tree, BlockExpr* map) {
     while (!check(tree, TOKEN_RIGHT_BRACKET) && !atEnd(tree))
     {
@@ -930,11 +899,11 @@ void printExpression(Expr* expression) {
             TokenType type = block->token.type;
             for (size_t i = 0; i < block->count; ++i) {
                 if (type == TOKEN_SOF) {
-                    printf("Expr  %04d: ", i);
+                    printf("Expr  %04lu: ", i);
                 } else if (type == TOKEN_LEFT_BRACE) {
-                    printf("SExpr %04d: ", i);
+                    printf("SExpr %04lu: ", i);
                 } else {
-                    printf("Arg   %04d: ", i);
+                    printf("Arg   %04lu: ", i);
                 }
                 printExpression(block->subexprs[i]);
             }

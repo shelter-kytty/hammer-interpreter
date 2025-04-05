@@ -20,6 +20,7 @@ typedef enum {
 //#define DEBUG_DISPLAY_TOKENS
 #define DEBUG_DISPLAY_AST
 #define DEBUG_COMPILER_PROGRESS
+#define DEBUG_UPVALUE_INFO
 
 /* Runtime info */
 #define DEBUG_DISPLAY_PROGRAM

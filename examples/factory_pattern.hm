@@ -36,7 +36,6 @@ guy = Person(33 ; 5.0 ; "Jeremy")
 dude = Person(40 ; 6.4 ; "Mark")
 
 
-
 // All do exact same thing
 print Age(guy)
 print Age(dude)

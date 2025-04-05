@@ -1607,7 +1607,7 @@ InterpretResult run(VM* vm) {
                 }
 
                 // recursive local functions close over themselves, so the closure
-                // needs to be on the stack`
+                // needs to be on the stack
                 Value func = peek(vm, 0);
                 ObjClosure* closure = newClosure(vm, AS_FUNC(func), count);
                 pop(vm);
@@ -1633,39 +1633,6 @@ InterpretResult run(VM* vm) {
                     closure->depths[i] = (uint8_t)i;
                 }
 
-
-                break;
-            }
-            case OP_FROM_GREATER: {
-                if (!IS_CLOSURE(peek(vm, 0))) {
-                    runtimeError(vm, "FROM : Expected closure, got %s", getValName(peek(vm, 0)));
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-                
-                uint8_t count = READ_BYTE(vm);
-                ObjClosure* cur_closure = currentFrame(vm)->closure;
-                ObjClosure* new_closure = AS_CLOSURE(peek(vm, 0));
-                
-                if (cur_closure == NULL) {
-                    const char* name = currentFrame(vm)->function->name->chars;
-                    runtimeError(vm, "FROM : No upvalues; %s is not a closure", name != NULL ? name : "<lmbd>");
-                    return false;
-                }
-
-                for (int i = 0; i < count; i++) {
-                    uint8_t depth = READ_BYTE(vm);
-                    for (int n = 0; n < cur_closure->upvalueCount; n++) {
-                        if (cur_closure->depths[n] == depth) {
-                            new_closure->upvalues[i] = cur_closure->upvalues[n];
-                            new_closure->depths[i] = n;
-                        }
-                    }
-                }
-                
-                /* uint8_t old = new_closure->upvalueCount;
-                new_closure->upvalueCount = old + count;
-                new_closure->upvalues = ALLOCATE(vm, old + count);
-                new_closure->depths = ALLOCATE(vm, old + count); */
 
                 break;
             }

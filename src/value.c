@@ -30,14 +30,16 @@ void freeValueArray(VM* vm, ValueArray* array) {
 }
 
 bool valuesEqual(Value a, Value b) {
-    if (a.type != b.type) 
-        if (IS_ARITH(a) && IS_ARITH(b))
+    if (a.type != b.type) {
+        if (IS_ARITH(a) && IS_ARITH(b)) {
             if (IS_FLOAT(a))
                 return AS_FLOAT(a) == AS_INT(b);
             else
                 return AS_INT(a) == AS_FLOAT(b);
-        else
+        } else
             return false;
+    }
+
     switch (a.type) {
         case VAL_UNIT:          return true;
         case VAL_BOOL:          return AS_BOOL(a) == AS_BOOL(b);

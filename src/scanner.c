@@ -151,29 +151,6 @@ static bool match(Scanner* scanner, char expected) {
     return true;
 }
 
-static void skipWhitespace(Scanner* scanner) {
-    for (;;) {
-        char c = peek(scanner);
-
-        switch (c) {
-        case ' ':
-        case '\r':
-        case '\t':
-            advance(scanner);
-            break;
-        case '/': {
-            if (peekNext(scanner) == '/') {
-                while (peek(scanner) != '\n' && !isAtEnd(scanner)) advance(scanner);
-                break;
-            }
-            return;
-        }
-        default:
-            return;
-        }
-    }
-}
-
 static void endlineBreak(Scanner* scanner) {
     for (;;) {
         char c = peek(scanner);
@@ -235,20 +212,6 @@ static Token errorToken(Scanner* scanner, const char* msg) {
 #endif
 
     return err;
-}
-
-static Token breakToken(Scanner* scanner) {
-    Token _break;
-    _break.line = scanner->line - 1;
-    _break.start = "-break-";
-    _break.length = 7;
-    _break.type = TOKEN_BREAK;
-
-#ifdef DEBUG_DISPLAY_TOKENS
-    printToken(&_break);
-#endif
-
-    return _break;
 }
 
 static Token scanNums(Scanner* scanner) {
