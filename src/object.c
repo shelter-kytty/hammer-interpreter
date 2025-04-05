@@ -47,37 +47,27 @@ static uint32_t hashString(const char* str, size_t length) {
 }
 
 ObjString* allocateString(VM* vm, char* chars, int length, uint32_t hash) {
-    //printf("In allocateString() : Just entered\n");
     ObjString* string = ALLOCATE_OBJ(vm, ObjString, OBJ_STRING);
     string->length = length;
     string->chars = chars;
     string->hash = hash;
 
-    bool throwaway = tableAddEntry(vm, &vm->strings, string, UNIT_VAL);
-
-    //printf("In allocateString() : Successfully allocated string\n");
+    tableAddEntry(vm, &vm->strings, string, UNIT_VAL);
 
     return string;
 }
 
 ObjString* copyString(VM* vm, const char* chars, size_t length) {
-    //printf("In copyString()\n");
-    //printf("Copying %.*s\n", length, chars);
     uint32_t hash = hashString(chars, length);
     ObjString* interned = tableFindString(&vm->strings, chars, length, hash);
 
     if (interned != NULL) {
-        //printf("In copyString() : Returning interned\n");
         return interned;
     }
-
-    //printf("In copyString() : Allocating\n");
 
     char* heapChars = ALLOCATE(vm, length + 1, char);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
-
-    //printf("In copyString() : Successfully allocated %d bytes\n", length + 1);
 
     return allocateString(vm, heapChars, length, hash);
 }
@@ -192,23 +182,7 @@ void printObject(Value value) {
         case OBJ_CLOSURE: {
             ObjClosure* closure = AS_CLOSURE(value);
             if (closure->function->name != NULL) {
-                printf("<clsr %s %d : %d>", closure->function->name->chars, closure->upvalueCount, closure->function->arity);
-                /* #ifdef DEBUG
-                printf("{");
-                if (closure->upvalueCount > 0) {
-                    printValue(closure->upvalues[0]);
-                    printf("->%d", closure->depths[0]);
-                    for (int i = 1; i < closure->upvalueCount; i++) {
-                        printf(" ; ");
-                        if (IS_CLOSURE(closure->upvalues[i]))
-                            printf("Another Closure");
-                        else
-                            printValue(closure->upvalues[i]);
-                        printf("->%d", closure->depths[i]);
-                    }
-                }
-                printf("}");
-                #endif //DEBUG */
+                printf("<clsr %s : %d %d>", closure->function->name->chars, closure->function->arity, closure->upvalueCount);
             } else {
                 printf("<clsr %d : %d>", closure->upvalueCount, closure->function->arity);
             }

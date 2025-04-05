@@ -390,15 +390,6 @@ static Expr* topLevel(ProgramTree* tree) {
     return expr;
 }
 
-static void separatedArgs(ProgramTree* tree, BlockExpr* block, TokenType end, Precedence prec) {
-    crossLine(tree);
-
-    while (!check(tree, end) && !atEnd(tree)) {
-        writeExpr(block, expression(tree, prec));
-        crossLine(tree);
-    }
-}
-
 static void mapArgs(ProgramTree* tree, BlockExpr* map) {
     while (!check(tree, TOKEN_RIGHT_BRACKET) && !atEnd(tree))
     {

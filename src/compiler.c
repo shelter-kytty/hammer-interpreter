@@ -48,6 +48,10 @@ static Token getToken(Compiler* compiler, Expr* expression) {
             BlockExpr* block = (BlockExpr*)expression;
             return block->token;
         }
+        default: {
+            compilerError(compiler, "Did not recognise expression type");
+            return (Token){ TOKEN_ERROR, NULL, 0, 0 };
+        }
     }
 }
 
@@ -76,10 +80,7 @@ static void compilerError(Compiler* compiler, const char* format, ...) {
     Compiler* traced = compiler;
 
     while (traced != NULL) {
-        ObjFunction* function = traced->function;
-        
         fprintf(stderr, "[ line %d ] in %s\n", getLastLine(traced), getName(traced));
-
         traced = traced->enclosing;
     }
 
@@ -161,7 +162,7 @@ simple void endScope(Compiler* compiler, int endline) {
     }
 }
 
-static void addLocal(Compiler* compiler, ObjString* name, int line) {
+static void addLocal(Compiler* compiler, ObjString* name) {
     if (compiler->localCount > UINT8_MAX) {
         compilerError(compiler, "Too many bindings in scope; limit is %d, had %d", UINT8_MAX, compiler->localCount);
         return;
@@ -185,7 +186,7 @@ static void addLocal(Compiler* compiler, ObjString* name, int line) {
     local->isCaptured = false;
 }
 
-static void fixLocal(Compiler* compiler, ObjString* name, int line) {
+static void fixLocal(Compiler* compiler, ObjString* name) {
     for (int i = compiler->localCount - 1; i >= 0; i--) {
         Local* local = &compiler->locals[i];
         if (local->depth == -1 && local->name == name) {
@@ -674,7 +675,7 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
     if (compiler->scopeDepth == 0) 
         spot = makeConstant(compiler, OBJ_VAL(name));
     else 
-        addLocal(compiler, name, nomme.line);
+        addLocal(compiler, name);
 
     // Handle rvalue
     if (getToken(compiler, binary->right).type == TOKEN_LEFT_BRACE && compiler->scopeDepth > 0) {
@@ -691,7 +692,7 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
         emitBytes(compiler, OP_MAKE_GLOBAL, (uint8_t)spot, binary->token.line);
     }
     else {
-        fixLocal(compiler, name, nomme.line);
+        fixLocal(compiler, name);
 
         if (getToken(compiler, binary->right).type == TOKEN_EQUALS) {
             emitByte(compiler, OP_DUPE_TOP, getLastLine(compiler));
@@ -746,8 +747,8 @@ static ObjCell* maskTree(Compiler* compiler, BinaryExpr* binary) {
     if (lType == TOKEN_IDENTIFIER) {
         Token id = getToken(compiler, binary->left);
         ObjString* name = copyString(compiler->vm, id.start, id.length);
-        addLocal(compiler, name, id.line);
-        fixLocal(compiler, name, id.line);
+        addLocal(compiler, name);
+        fixLocal(compiler, name);
         cell->car = BOOL_VAL(true);
         // make local and add 'true' branch
     }
@@ -768,8 +769,8 @@ static ObjCell* maskTree(Compiler* compiler, BinaryExpr* binary) {
     if (rType == TOKEN_IDENTIFIER) {
         Token id = getToken(compiler, binary->right);
         ObjString* name = copyString(compiler->vm, id.start, id.length);
-        addLocal(compiler, name, id.line);
-        fixLocal(compiler, name, id.line);
+        addLocal(compiler, name);
+        fixLocal(compiler, name);
         cell->cdr = BOOL_VAL(true);
         // make local and add 'true' branch
     }
@@ -1091,25 +1092,20 @@ static bool isConstant(Compiler* compiler, Expr* expr) {
                                getToken(compiler, expr).type != TOKEN_GLYPH;
     case EXPR_UNARY:    return isConstant(compiler, ((UnaryExpr*)expr)->operand) && 
                                 getToken(compiler, expr).type != TOKEN_PRINT     && 
-                                getToken(compiler, expr).type != TOKEN_PUT; // have to make sure you don't \
-                                                        compile 'print's and 'put's away
+                                getToken(compiler, expr).type != TOKEN_PUT; // have to make sure you don't compile 'print's and 'put's away
     case EXPR_BINARY: {
-        if (getToken(compiler, expr).type == TOKEN_EQUALS) {
-            return isConstant(compiler, ((BinaryExpr*)expr)->right);
-        }
-        else {
-            return isConstant(compiler, ((BinaryExpr*)expr)->left) && isConstant(compiler, ((BinaryExpr*)expr)->right);
-        }
+        if (getToken(compiler, expr).type == TOKEN_EQUALS) return isConstant(compiler, ((BinaryExpr*)expr)->right);
+        else return isConstant(compiler, ((BinaryExpr*)expr)->left) && isConstant(compiler, ((BinaryExpr*)expr)->right);
     }
     case EXPR_TERNARY:  return getToken(compiler, expr).type == TOKEN_COLON;
-    case EXPR_BLOCK:    return getToken(compiler, expr).type != TOKEN_LEFT_BRACE; // lists & maps are always truthy, \
-                                                        and blocks could contain side-effects
+    case EXPR_BLOCK:    return getToken(compiler, expr).type != TOKEN_LEFT_BRACE; // lists & maps are always truthy, and blocks could contain side-effects
+    default: return false;
     }
 }
 
 static bool isSure(TokenType type) {
     switch (type) {
-        case TOKEN_PLUS:                return true; //  ^\ 
+        case TOKEN_PLUS:                return true; //  ___
         case TOKEN_MINUS:               return true; //    |
         case TOKEN_STAR:                return true; //    |
         case TOKEN_SLASH:               return true; //    |
@@ -1118,8 +1114,8 @@ static bool isSure(TokenType type) {
         case TOKEN_COMMA:               return true; //    |
         case TOKEN_DOT_DOT:             return true; //    |
         case TOKEN_CONS:                return true; //    |
-        case TOKEN_RECEIVE:             return true; //  _/ 
-        default: false;
+        case TOKEN_RECEIVE:             return true; //  ___
+        default: return false;
     }
 }
 
@@ -1140,7 +1136,7 @@ static bool exprIsTruthy(Compiler* compiler, Expr* expr) {
     }
     case EXPR_TERNARY:  return getToken(compiler, expr).type == TOKEN_COLON;
     case EXPR_BLOCK:    return true; 
-    default: break;
+    default: return false;
     }
 }
 
@@ -1163,8 +1159,6 @@ static void variableIf(Compiler* compiler, TernaryExpr* ternary) {
 }
 
 static void compileIf(Compiler* compiler, TernaryExpr* ternary) {
-    Token pivot = getToken(compiler, ternary->pivot);
-
     if (!isConstant(compiler, ternary->pivot)) {
         variableIf(compiler, ternary);
     }
@@ -1248,8 +1242,8 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
         type = FUN_FUNCTION;
         // necessary for recursive functions 
         if (enclosing->scopeDepth > 0) {
-            addLocal(enclosing, name, leftHand->token.line);
-            fixLocal(enclosing, name, leftHand->token.line);    
+            addLocal(enclosing, name);
+            fixLocal(enclosing, name);    
         }
     }
     
@@ -1393,6 +1387,7 @@ static void compileBlock(Compiler* compiler, BlockExpr* block) {
     case TOKEN_LEFT_PAREN:      list(compiler, block); return;
     case TOKEN_LEFT_BRACE:      codeBlock(compiler, block); return;
     case TOKEN_LEFT_BRACKET:    map(compiler, block); return;
+    default: break;
     }
 
     compilerError(compiler, "Invalid expression at %.*s", token.length, token.start);

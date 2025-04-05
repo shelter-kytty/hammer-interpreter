@@ -113,15 +113,6 @@ static bool isDigit(char ch) {
     return ch >= '0' && ch <= '9';
 }
 
-static bool isWhitespace(char ch) {
-    return ch == ' ' 
-        || ch == '\n' 
-        || ch == '\t' 
-        || ch == '\r' 
-        || ch == '\b' 
-        || ch == '\0';
-}
-
 static bool isAtEnd(Scanner* scanner) {
     return *scanner->current == '\0';
 }
@@ -132,11 +123,6 @@ static char advance(Scanner* scanner) {
 
 static char peek(Scanner* scanner) {
     return *scanner->current;
-}
-
-static char peekBack(Scanner* scanner) {
-    if (scanner->current == scanner->trueBeginning) return '\0';
-    return scanner->current[-1];
 }
 
 static char peekNext(Scanner* scanner) {
