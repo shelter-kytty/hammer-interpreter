@@ -8,18 +8,28 @@
 #include "vm.h"
 #include "ast.h"
 
-// TODO: Add support for upvalues from greater scopes
-// Need to make it so upvalues are properly tracked and can be captured by 
-// successive functions closing over the required values before passing them on
-// to their closures at runtime
 // TODO: Get repl working again
 // Idk itd be??? nice??? i guess
 // good for debugging some stuff
 
+// currently this setup segfaults. somewhat randomly but often. and has some strange issues
+// my guess as to the cause of the issues is:
+//      A. Needed values are being collected at the end of interpret(), probably by the GC, which breaks everything on the next loop.   [x]
+//      B. The stack isnt being properly cleaned up by OP_RETURN, which puts everything out of alignment.                               [x]
+//      C. The program is leaking HUGE amounts of memory (most likely imo), causing it to either stack-smash or completely run out.     [ ]
 
+// I made some patches to fix A and B (which did mitigate some issues), however the repl still consistently segfaults
+// after about 3 inputs.
+
+// Considering that the stack looks fine, a NULL dereference probably wouldve been caught by something else, and it runs
+// perfectly fine at least thrice, to me, it seems the issue is almost definitely to do running out of memory.
+
+// My only other guess is that the GC is going after values on the stack, but not within the frame; since the stack is statically allocated,
+// values "above" the stack pointer still exist, theyre just ignored. The GC may or may not be configured to go after those values, im not
+// sure. It shouldnt, and it shouldnt matter unless theyre globals (in which case theyd be tagged elsewhere) but im not 100% sure.
 static void repl() {
-    //VM vm;
-    //initVM(&vm);    
+    VM vm;
+    initVM(&vm);    
 
     for (;;) {
         char buf[1024];
@@ -30,10 +40,15 @@ static void repl() {
             break;
         }
 
-        //interpret(&vm, buf);
+        InterpretResult result = interpret(&vm, buf);
+
+        if (result == INTERPRET_RUNTIME_ERROR) {
+            fprintf(stderr, "Runtime error\n");
+            break;
+        }
     }
 
-    //freeVM(&vm);
+    freeVM(&vm);
 }
 
 static char* readFile(const char* path) {
@@ -106,8 +121,6 @@ int main(int argc, char* argv[])
         /* put a .ml file into same dir as [path] */
         char* source = readFile(argv[2]);
 
-        //debugAST(source);
-
         free(source);
 
         writeFile(argv[2], "did the thing!");
@@ -116,11 +129,11 @@ int main(int argc, char* argv[])
     else if (argc == 2) {
         /* read and execute file without writing anywhere */
         char* source = readFile(argv[1]);
-        
-        //debugScanner(source);
-        //debugAST(source);
-        interpretTEST(source);
+        VM vm; initVM(&vm);
 
+        interpret(&vm, source);
+
+        freeVM(&vm);
         free(source);
     } 
     else {

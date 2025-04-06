@@ -130,12 +130,16 @@ void defineNative(VM* vm, const char* name, NativeFn function, int arity) {
 }
 
 bool clockNative(VM* vm, int argc, Value* argv) {
+    if (argc > 0) {
+        runtimeError(vm, "'clock' takes 0 arguments");
+        return false;
+    }
     returnNative(vm, argc, FLOAT_VAL((double)clock() / CLOCKS_PER_SEC));
     return true;
 }
 
 bool exitNative(VM* vm, int argc, Value* argv) {
-    if (!IS_INT(argv[0])) {
+    if (!IS_INT(argv[0]) || argc > 1) {
         runtimeError(vm, "'exit' takes 1 int as it's argument");
         return false;
     }
@@ -190,9 +194,9 @@ bool printfNative(VM* vm, int argc, Value* argv) {
     return true;
 }
 
-bool printlnNative(VM* vm, int argc, Value* argv) {
+bool printfnNative(VM* vm, int argc, Value* argv) {
     if (!IS_STRING(argv[0])) {
-        runtimeError(vm, "Arg 1 of 'println' must be string");
+        runtimeError(vm, "Arg 1 of 'printfn' must be string");
         return false;
     }
 
@@ -208,7 +212,7 @@ bool printlnNative(VM* vm, int argc, Value* argv) {
             long slot = strtol(format, &end, 10);
 
             if (slot > argc - 1) {
-                runtimeError(vm, "PRINTLN : Cannot index outside of args");
+                runtimeError(vm, "PRINTFN : Cannot index outside of args");
                 return false;
             }
 
@@ -217,7 +221,7 @@ bool printlnNative(VM* vm, int argc, Value* argv) {
             format = end;
 
             if (*format != '}') {
-                runtimeError(vm, "PRINTLN : Expected '}' in format");
+                runtimeError(vm, "PRINTFN : Expected '}' in format");
                 return false;
             }
             
@@ -770,7 +774,7 @@ void initVM(VM* vm) {
     defineNative(vm, "clock", clockNative, 0);
     defineNative(vm, "exit", exitNative, 1);
     defineNative(vm, "printf", printfNative, -2);
-    defineNative(vm, "println", printlnNative, -2);
+    defineNative(vm, "printfn", printfnNative, -2);
     defineNative(vm, "typeOf", typeOfNative, 1);
     defineNative(vm, "len", lenNative, 1);
     defineNative(vm, "rev", revNative, 1);
@@ -1216,6 +1220,8 @@ InterpretResult run(VM* vm) {
                 #ifdef DEBUG_DISPLAY_INSTRUCTIONS
                 printf("\n");
                 #endif
+
+                pop(vm); // the final UNIT, must be cleaned up for repl
                 return INTERPRET_OK;
             }
             case OP_TAIL_CALL: {
@@ -1845,7 +1851,6 @@ InterpretResult run(VM* vm) {
                 push(vm, CHAR_VAL(val));
                 break;
             }
-            
             case OP_COMPOSE: {
                 if (!IS_CALLABLE(peek(vm, 1)) || !IS_CALLABLE(peek(vm, 0))) {
                     runtimeError(vm, "COMPOSE : Cannot compose %s with %s", getValName(peek(vm, 0)), getValName(peek(vm, 1)));
@@ -1862,6 +1867,7 @@ InterpretResult run(VM* vm) {
                 int arity = getArity(vm, peek(vm, 1));
                 
                 if (arity == -1) {
+                    runtimeError(vm, "COMPOSE : Cannot compose %s with %s", getValName(peek(vm, 0)), getValName(peek(vm, 1)));
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 
@@ -2100,10 +2106,6 @@ InterpretResult run(VM* vm) {
 #undef READ_BYTE
 }
 
-InterpretResult interpret(VM* vm, const char* source) {
-    return 0;
-}
-
 InterpretResult interpretTEST(const char* source) {
     VM vm;
     initVM(&vm);
@@ -2124,6 +2126,22 @@ InterpretResult interpretTEST(const char* source) {
     freeVM(&vm);
 
     return result;
+}
+
+InterpretResult interpret(VM* vm, const char* source) {
+    // no gc during compilation 
+    // shouldnt be needed normally but repl() makes multiple calls to interpret() with one VM so must be reset
+    vm->isActive = false;
+    ObjFunction* script = compile(source, vm);
+
+    if (script == NULL) {
+        return INTERPRET_COMPILATION_ERROR;
+    }
+
+    vm->frames[vm->frameCount++] = (CallFrame){script, NULL, script->body.code, vm->stack, false};
+    vm->isActive = true;
+
+    return run(vm);
 }
 
 /*

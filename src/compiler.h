@@ -15,7 +15,7 @@
 typedef struct {
     ObjString* name;
     int depth;
-    bool isCaptured;
+    bool isCaptured; // unused field
 } Local;
 
 typedef struct {
@@ -31,10 +31,10 @@ typedef enum {
 
 struct Compiler {
     // Static
+    FunctionType type;
     int scopeDepth;
     int localCount;
     Local locals[UINT8_COUNT];
-    FunctionType type;
     int upvalueCount;
     Upvalue upvalues[UINT8_COUNT];
 

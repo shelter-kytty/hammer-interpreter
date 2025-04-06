@@ -304,7 +304,9 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
     for (int i = 0; i < upvalueCount; i++) {
         Upvalue upvalue = compiler->upvalues[i];
         if (upvalue.index == index && upvalue.isLocal == isLocal) {
+            #ifdef DEBUG_UPVALUE_INFO
             printf("Found upvalue at index %d, islocal = %d\n", upvalue.index, upvalue.isLocal);
+            #endif
             return i;
         }
     }
@@ -657,7 +659,7 @@ static void _or(Compiler* compiler, BinaryExpr* binary) {
 // Leave 'ObjString* name = NULL;' in the fn scope so the other parts can
 // access it
 static void bindVal(Compiler* compiler, BinaryExpr* binary) {
-    int spot;
+    int spot = 0;
     Token nomme = getToken(compiler, binary->left);
     ObjString* name = NULL;
 
