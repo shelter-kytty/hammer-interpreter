@@ -22,11 +22,8 @@
 // after about 3 inputs.
 
 // Considering that the stack looks fine, a NULL dereference probably wouldve been caught by something else, and it runs
-// perfectly fine at least thrice, to me, it seems the issue is almost definitely to do running out of memory.
-
-// My only other guess is that the GC is going after values on the stack, but not within the frame; since the stack is statically allocated,
-// values "above" the stack pointer still exist, theyre just ignored. The GC may or may not be configured to go after those values, im not
-// sure. It shouldnt, and it shouldnt matter unless theyre globals (in which case theyd be tagged elsewhere) but im not 100% sure.
+// perfectly fine at least thrice, to me, it seems the issue is almost definitely to do running out of memory, either being
+// unable to allocate any more or the stack is smashing into the heap.
 static void repl() {
     VM vm;
     initVM(&vm);    
