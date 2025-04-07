@@ -16,7 +16,7 @@
 // my guess as to the cause of the issues is:
 //      A. Needed values are being collected at the end of interpret(), probably by the GC, which breaks everything on the next loop.   [x]
 //      B. The stack isnt being properly cleaned up by OP_RETURN, which puts everything out of alignment.                               [x]
-//      C. The program is leaking HUGE amounts of memory (most likely imo), causing it to either stack-smash or completely run out.     [ ]
+//      C. The program is leaking HUGE amounts of memory (most likely imo), causing it to either stack-smash or completely run out.     [n]
 
 // I made some patches to fix A and B (which did mitigate some issues), however the repl still consistently segfaults
 // after about 3 inputs.
@@ -24,6 +24,25 @@
 // Considering that the stack looks fine, a NULL dereference probably wouldve been caught by something else, and it runs
 // perfectly fine at least thrice, to me, it seems the issue is almost definitely to do running out of memory, either being
 // unable to allocate any more or the stack is smashing into the heap.
+
+// Potential solulus:
+//      1. Dynamically allocate compilers; now i know that sounds pointless but hear me out, currently every compiler that might exist 
+//         during compilation is stack allocated. Running out of stack is a lot faster than running out of heap (i think? either way), 
+//         it could free up enough space from the stack to prevent these issues occuring.
+//      2. Cleaning up the VM (somehow); if at all possible i think that a potential solution could be to clean up as much cruft from the
+//         VM as possible. Again im unsure how to but. It could work. Probably could just manually trigger a gc cleanup after execution 
+//         but before the next compilation; thats my best idea at least. itll remove all the dangling strings and references and such without
+//         affecting the next compilation cycle.
+//      3. Mark compiler roots; idea is to, essentially, mark the objects the compiler has access to during compilation. This removes having
+//         to turn the GC off during compilation. Only potential issue is actually getting to all of them, I had to add a whole new colour to
+//         the GC to get what i have now working and its already pretty memory intensive.
+//      4. Heap-allocated local/upvalue references; currently the compilers `locals` and `upvalues` fields are statically allocated, thats 384
+//         8-bit integers and 128 pointers (64-bit on my machine), per-compiler. Thats kinda a lot? Especially since nearly none of them ever 
+//         get used. The top-level compiler almost never has to worry about locals OR upvalues yet it has 512 32~ bit segments dedicated to them.
+//         Heap-allocating them, combined with an active GC during the compilation phase, could be quite beneficial.
+
+// Okay so this entire issue was just because i STILL wasnt reducing vm->frameCount after execution. Omfgggg im just. im glad it was easier than
+// i thought. mhm
 static void repl() {
     VM vm;
     initVM(&vm);    

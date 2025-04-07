@@ -1222,6 +1222,7 @@ InterpretResult run(VM* vm) {
                 #endif
 
                 pop(vm); // the final UNIT, must be cleaned up for repl
+                vm->frameCount--; // remove top-level function frame (oops <w>)
                 return INTERPRET_OK;
             }
             case OP_TAIL_CALL: {
