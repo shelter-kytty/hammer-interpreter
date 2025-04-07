@@ -44,7 +44,7 @@ debug: $(EXE)
 
 
 release: BLD_DIR = $(REL_DIR)
-release: CLFAGS += -O3 -DRELEASE
+release: CFLAGS += -O3 -DRELEASE
 release: $(EXE)
 
 $(EXE): $(OBJS)
