@@ -918,7 +918,7 @@ void debugAST(const char* source) {
     tree.program = Block(&tree, *tree.tokens);
 
     for (;;) {
-        Token token = debugScanToken(&tree.scanner);
+        Token token = scanToken(&tree.scanner);
         
         writeToken(&tree, token);
 
@@ -968,7 +968,7 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
     tree->program = Block(tree, *tree->tokens);
 
     for (;;) {
-        Token token = debugScanToken(&tree->scanner);
+        Token token = scanToken(&tree->scanner);
         
         writeToken(tree, token);
 

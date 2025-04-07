@@ -62,7 +62,6 @@ typedef struct {
 void debugScanner(const char* source);
 
 Token scanToken(Scanner* scanner);
-Token debugScanToken(Scanner* scanner);
 void printToken(const Token* token);
 void initScanner(Scanner* scanner, const char* source);
 

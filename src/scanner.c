@@ -357,98 +357,6 @@ static Token formattedString(Scanner* scanner) {
     return makeToken(scanner, TOKEN_FORMAT_STRING);
 }
 
-static Token escapedIdentifier(Scanner* scanner) {
-    while (peek(scanner) != '`' && !isAtEnd(scanner)) {
-        if (advance(scanner) == '\n') scanner->line++;
-    }
-
-    if (isAtEnd(scanner)) return errorToken(scanner, "Unterminated escaped identifier");
-
-    advance(scanner); // Eat closing '`'
-
-    return makeToken(scanner, TOKEN_IDENTIFIER);
-}
-
-// Token scanToken(Scanner* scanner) {
-//     skipWhitespace(scanner);
-//     scanner->start = scanner->current;
-
-//     if (isAtEnd(scanner)) return makeToken(scanner, TOKEN_EOF);
-    
-    
-//     if (peek(scanner) == '\n') {
-//         // try to get sig-indent working : will need to tweak this so the parser can measure indent properly
-//         endlineBreak(scanner);
-//         return breakToken(scanner);
-//     }
-    
-//     if (peek(scanner) == '\\' && peekNext(scanner) == '\n') {
-//         advance(scanner);
-//         advance(scanner);
-//         skipWhitespace(scanner);
-//         scanner->start = scanner->current;
-//         scanner->line++;
-//     }
-
-
-//     char c = advance(scanner);
-
-//     if (c == 'f' && match(scanner, '"')) return formattedString(scanner);
-
-//     if (isAlpha(c)) return scanText(scanner);
-    
-//     // if (c == '0' && peek(scanner) != '.')   return scanOtherBases(scanner);
-//     if (isDigit(c)) return scanNums(scanner);
-
-//     switch (c) {
-//         // Symbols
-//         case '(': return makeToken(scanner, TOKEN_LEFT_PAREN);
-//         case ')': return makeToken(scanner, TOKEN_RIGHT_PAREN);
-//         case '[': return makeToken(scanner, TOKEN_LEFT_BRACKET);
-//         case ']': return makeToken(scanner, TOKEN_RIGHT_BRACKET);
-//         case '{': return makeToken(scanner, TOKEN_LEFT_BRACE);
-//         case '}': return makeToken(scanner, TOKEN_RIGHT_BRACE);
-//         case '+': return makeToken(scanner, TOKEN_PLUS);
-//         case '-': return makeToken(scanner, TOKEN_MINUS);
-//         case '*': return makeToken(scanner, TOKEN_STAR);
-//         case '^': return makeToken(scanner, TOKEN_UCARET);
-//         case '/': return makeToken(scanner, TOKEN_SLASH);
-//         case '%': return makeToken(scanner, TOKEN_PERCENT);
-//         case ':': return makeToken(scanner, TOKEN_COLON);
-//         case ',': return makeToken(scanner, TOKEN_COMMA);
-//         case '$': return makeToken(scanner, TOKEN_DOLLAR);
-//         case '|': return makeToken(scanner, match(scanner, '>') ? TOKEN_SPIGOT          : TOKEN_PIPE);
-//         case '.': return makeToken(scanner, match(scanner, '.') ? TOKEN_DOT_DOT         : TOKEN_DOT);
-//         case '>': return makeToken(scanner, match(scanner, '=') ? TOKEN_GREATER_EQUALS  : TOKEN_GREATER); 
-//         case '<': {
-//             switch (*scanner->current) {
-//             case '<': scanner->current++; return makeToken(scanner, TOKEN_RECEIVE);
-//             case '=': scanner->current++; return makeToken(scanner, TOKEN_LESS_EQUALS);
-//             case '-': scanner->current++; return makeToken(scanner, TOKEN_RETURN);
-//             default: return makeToken(scanner, TOKEN_LESS);
-//             }
-//         }
-//         case '=': return makeToken(scanner, match(scanner, '=') ? TOKEN_EQUALS_EQUALS   : (match(scanner, '>') ? TOKEN_ROCKET : TOKEN_EQUALS)); 
-//         case '!': return makeToken(scanner, match(scanner, '=') ? TOKEN_BANG_EQUALS     : TOKEN_BANG); 
-//         case '?': return makeToken(scanner, TOKEN_QUESTION);
-        
-//         // break tokens aren't needed on lines that end with ';'
-//         case ';': { 
-//             endlineBreak(scanner);
-//             return makeToken(scanner, TOKEN_SEMICOLON);
-//         }
-
-//         // Literals
-//         case '"': return string(scanner);
-//         case '\'': return character(scanner);
-//         case '`': return escapedIdentifier(scanner);
-
-//         default: break;
-//     }
-
-//     return errorToken(scanner, "Unrecognised token");
-// }
-
 // Operator definition is '[:+\-*\\=^&|@<#$=!~?>]+' :: work this into code somehow (Maybe operators should be
 // treated with maximal munch (I mean, they already are kinda??? Just gotta have it group any random set
 // together lol))
@@ -561,8 +469,7 @@ static Token literalOperator(Scanner* scanner) {
     return makeToken(scanner, TOKEN_GLYPH);
 }
 
-
-Token debugScanToken(Scanner* scanner) {
+Token scanToken(Scanner* scanner) {
     endlineBreak(scanner);
     scanner->start = scanner->current;
 
@@ -599,65 +506,6 @@ Token debugScanToken(Scanner* scanner) {
     return errorToken(scanner, "Unrecognised token");
 }
 
-Token scanToken(Scanner* scanner) {
-    endlineBreak(scanner);
-    scanner->start = scanner->current;
-
-    if (isAtEnd(scanner)) return makeToken(scanner, TOKEN_EOF);
-
-    char c = advance(scanner);
-
-    if (c == 'f' && match(scanner, '"')) return formattedString(scanner);
-
-    if (isAlpha(c)) return scanText(scanner);
-    if (isDigit(c)) return scanNums(scanner);
-
-    switch (c) {
-        // Symbols
-        case '(': return makeToken(scanner, TOKEN_LEFT_PAREN);
-        case ')': return makeToken(scanner, TOKEN_RIGHT_PAREN);
-        case '[': return makeToken(scanner, TOKEN_LEFT_BRACKET);
-        case ']': return makeToken(scanner, TOKEN_RIGHT_BRACKET);
-        case '{': return makeToken(scanner, TOKEN_LEFT_BRACE);
-        case '}': return makeToken(scanner, TOKEN_RIGHT_BRACE);
-        case '+': return makeToken(scanner, TOKEN_PLUS);
-        case '-': return makeToken(scanner, TOKEN_MINUS);
-        case '*': return makeToken(scanner, TOKEN_STAR);
-        case '^': return makeToken(scanner, TOKEN_UCARET);
-        case '/': return makeToken(scanner, TOKEN_SLASH);
-        case '%': return makeToken(scanner, TOKEN_PERCENT);
-        case ':': return makeToken(scanner, TOKEN_COLON);
-        case ',': return makeToken(scanner, TOKEN_COMMA);
-        case '$': return makeToken(scanner, TOKEN_DOLLAR);
-        case '|': return makeToken(scanner, match(scanner, '>') ? TOKEN_SPIGOT          : TOKEN_PIPE);
-        case '.': return makeToken(scanner, match(scanner, '.') ? TOKEN_DOT_DOT         : TOKEN_DOT);
-        case '>': return makeToken(scanner, match(scanner, '=') ? TOKEN_GREATER_EQUALS  : TOKEN_GREATER); 
-        case '<': {
-            switch (*scanner->current) {
-            case '<': scanner->current++; return makeToken(scanner, TOKEN_RECEIVE);
-            case '=': scanner->current++; return makeToken(scanner, TOKEN_LESS_EQUALS);
-            case '-': scanner->current++; return makeToken(scanner, TOKEN_RETURN);
-            default: return makeToken(scanner, TOKEN_LESS);
-            }
-        }
-        case '=': return makeToken(scanner, match(scanner, '=') ? TOKEN_EQUALS_EQUALS   : (match(scanner, '>') ? TOKEN_ROCKET : TOKEN_EQUALS)); 
-        case '!': return makeToken(scanner, match(scanner, '=') ? TOKEN_BANG_EQUALS     : TOKEN_BANG); 
-        case '?': return makeToken(scanner, TOKEN_QUESTION);
-        
-        // break tokens aren't needed on lines that end with ';'
-        case ';': return makeToken(scanner, TOKEN_SEMICOLON);
-
-        // Literals
-        case '"': return string(scanner);
-        case '\'': return character(scanner);
-        case '`': return escapedIdentifier(scanner);
-
-        default: break;
-    }
-
-    return errorToken(scanner, "Unrecognised token");
-}
-
 void debugScanner(const char* source) {
     Scanner scanner;
     scanner.start = source;
@@ -665,7 +513,7 @@ void debugScanner(const char* source) {
     scanner.line = 0;
 
     for (;;) {
-        Token token = debugScanToken(&scanner);
+        Token token = scanToken(&scanner);
         if (token.type == TOKEN_EOF) break;
     }
 }

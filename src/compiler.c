@@ -252,9 +252,6 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
     return compiler->upvalueCount++;
 }
 
-// TODO: Add support for upvalues from greater scopes
-// Obviously this will need some tweaking
-// Probably to something like the commented out functions above,,, crazy that :p
 static int resolveUpvalue(Compiler* compiler, Token name) {
     if (compiler->enclosing == NULL) return -1;
 
@@ -371,8 +368,6 @@ static void character(Compiler* compiler, Token token) {
 }
 
 static void string(Compiler* compiler, Token token) {
-    //printf("String is : ");
-    //printToken(&token);
     emitConstant(compiler, OBJ_VAL(copyString(compiler->vm, token.start + 1, token.length - 2)), token.line);
 }
 
