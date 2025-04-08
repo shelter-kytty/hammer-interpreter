@@ -89,7 +89,6 @@ static bool callValue(VM* vm, Value caller, uint8_t argCount);
 static bool isTruthy(Value value);
 InterpretResult run(VM* vm);
 
-
 static bool callFromC(VM* vm, Value caller, uint8_t argCount) {
     if (!callValue(vm, caller, argCount)) {
         return false;
@@ -117,7 +116,6 @@ static bool callFromC(VM* vm, Value caller, uint8_t argCount) {
     return true;
 }
 
-
 void returnNative(VM* vm, int argCount, Value result) {
     vm->stackTop -= argCount + 1;
     push(vm, result);
@@ -128,6 +126,7 @@ void defineNative(VM* vm, const char* name, NativeFn function, int arity) {
     Value value = OBJ_VAL(newNative(vm, function, arity));
     tableAddEntry(vm, &vm->globals, AS_STRING(key), value);
 }
+
 
 bool clockNative(VM* vm, int argc, Value* argv) {
     if (argc > 0) {
@@ -152,8 +151,13 @@ static inline bool isIntChar(char ch) {
 }
 
 bool printfNative(VM* vm, int argc, Value* argv) {
+    if (argc < 1) {
+        runtimeError(vm, "PRINTF : Must have AT LEAST 1 arg");
+        return false;
+    }
+
     if (!IS_STRING(argv[0])) {
-        runtimeError(vm, "Arg 1 of 'printf' must be string");
+        runtimeError(vm, "PRINTF : Arg 1 must be a string")
         return false;
     }
 
@@ -166,7 +170,7 @@ bool printfNative(VM* vm, int argc, Value* argv) {
         if (next == '{' && isIntChar(format[1])) {
             format++;
 
-            long slot = strtol(format, &end, 10);
+            long slot = strtol(format, &end, 10) + 1; // 0-indexed
 
             if (slot > argc - 1) {
                 runtimeError(vm, "PRINTF : Cannot index outside of args");
@@ -195,8 +199,13 @@ bool printfNative(VM* vm, int argc, Value* argv) {
 }
 
 bool printfnNative(VM* vm, int argc, Value* argv) {
+    if (argc < 1) {
+        runtimeError(vm, "PRINTFN : Must have AT LEAST 1 arg");
+        return false;
+    }
+
     if (!IS_STRING(argv[0])) {
-        runtimeError(vm, "Arg 1 of 'printfn' must be string");
+        runtimeError(vm, "PRINTFN : Arg 1 must be a string")
         return false;
     }
 
@@ -209,7 +218,7 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
         if (next == '{' && isIntChar(format[1])) {
             format++;
 
-            long slot = strtol(format, &end, 10);
+            long slot = strtol(format, &end, 10) + 1; //0-indexed
 
             if (slot > argc - 1) {
                 runtimeError(vm, "PRINTFN : Cannot index outside of args");
@@ -240,6 +249,11 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
 }
 
 bool typeOfNative(VM* vm, int argc, Value* argv) {
+    if (argc != 1) {
+        runtimeError(vm, "TYPEOF : Takes 1 arg");
+        return false;
+    }
+
     returnNative(vm, argc, INT_VAL(
         IS_OBJ(argv[0]) 
         ? (long long)(OBJ_TYPE(argv[0]) + VAL_OBJ)
@@ -250,6 +264,11 @@ bool typeOfNative(VM* vm, int argc, Value* argv) {
 }
 
 bool lenNative(VM* vm, int argc, Value* argv) {
+    if (argc != 1) {
+        runtimeError(vm, "LEN : Takes 1 arg");
+        return false;
+    }
+
     if (!IS_OBJ(argv[0])) {
         runtimeError(vm, "LEN : Expected type with length, got %s", getValName(argv[0]));
         return false;
@@ -263,6 +282,11 @@ bool lenNative(VM* vm, int argc, Value* argv) {
 }
 
 bool addOperator(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "ADD : Takes 2 args");
+        return false;
+    }
+
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -294,6 +318,11 @@ bool addOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool subOperator(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "SUB : Takes 2 args");
+        return false;
+    }
+
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -325,6 +354,11 @@ bool subOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool mulOperator(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "MUL : Takes 2 args");
+        return false;
+    }
+
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -356,12 +390,17 @@ bool mulOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool divOperator(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "DIV : Takes 2 args");
+        return false;
+    }
+
     Value a = argv[0];
     Value b = argv[1];
     Value c;
     
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
-        runtimeError(vm, "MUL : Cannot perform op on %s and %s", getValName(a), getValName(b));
+        runtimeError(vm, "DIV : Cannot perform op on %s and %s", getValName(a), getValName(b));
         return false;
     }
 
@@ -387,6 +426,11 @@ bool divOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool powOperator(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "POW : Takes 2 args");
+        return false;
+    }
+
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -418,6 +462,11 @@ bool powOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool modOperator(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "MOD : Takes 2 args");
+        return false;
+    }
+
     Value b = pop(vm);
     Value a = pop(vm);
     Value c;                        
@@ -474,6 +523,17 @@ bool applyOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool mapNative(VM* vm, int argc, Value* argv) {
+    if (argc != 2) {
+        runtimeError(vm, "map$ : Expected 2 arguments, got %d", argc);
+        return false;
+    }
+
+
+    if (!IS_CALLABLE(argv[0])) {
+        runtimeError(vm, "map$ : Expected callable, got %s", getValName(argv[0]));
+        return false;
+    }
+
     if (!IS_LIST(argv[1])) {
         runtimeError(vm, "map$ : Expected list, got %s", getValName(argv[1]));
         return false;
@@ -1295,15 +1355,6 @@ InterpretResult run(VM* vm) {
                 push(vm, UNIT_VAL);
                 break;
             }      
-            case OP_PRINT: {
-                printValue(peek(vm, 0));
-                printf("\n");
-                break;
-            }
-            case OP_PUT: {
-                printValue(peek(vm, 0));
-                break;
-            }
             case OP_NOT: {
                 push(vm, BOOL_VAL(!isTruthy(pop(vm))));
                 break;

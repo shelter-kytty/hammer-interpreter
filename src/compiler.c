@@ -451,7 +451,6 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
     else {
         switch (literal->token.type) {
             case TOKEN_INTEGER:        integer  (compiler, token);                  return;
-            case TOKEN_BINARY:         binaryInt(compiler, token);                  return;
             case TOKEN_FLOAT:          floating (compiler, token);                  return;
             case TOKEN_STRING:         string   (compiler, token);                  return;
             case TOKEN_FORMAT_STRING:  fString  (compiler, token);                  return;
@@ -492,16 +491,6 @@ static void optimiseNegation(Compiler* compiler, UnaryExpr* unary) {
             emitConstant(compiler, INT_VAL(-value), arg.line);
         }
     }
-    else if (arg.type == TOKEN_BINARY) {
-        long long value = strtoll(arg.start + 2, NULL, 2);
-
-        if (value <= UINT16_MAX) {
-            emitShort(compiler, OP_INT_N, value, arg.line);
-        }
-        else {
-            emitConstant(compiler, INT_VAL(-value), arg.line);
-        }
-    }
     else if (arg.type == TOKEN_FLOAT) {
         double value = strtod(arg.start, NULL);
         size_t integral = (size_t)value;
@@ -534,8 +523,6 @@ static void compileUnary(Compiler* compiler, UnaryExpr* unary) {
     case TOKEN_EOF:         plainUnary(compiler, unary, OP_RETURN);     return;
     case TOKEN_CAR:         plainUnary(compiler, unary, OP_CAR);        return;
     case TOKEN_CDR:         plainUnary(compiler, unary, OP_CDR);        return;
-    case TOKEN_PRINT:       plainUnary(compiler, unary, OP_PRINT);      return;
-    case TOKEN_PUT:         plainUnary(compiler, unary, OP_PUT);        return;
     case TOKEN_QUESTION:    plainUnary(compiler, unary, OP_TRUTHY);     return;
     default: break;
     }
@@ -862,9 +849,6 @@ static void optimiseArithmetic(Compiler* compiler, BinaryExpr* binary, OpCode op
     if (getToken(compiler, binary->left).type == TOKEN_INTEGER && getToken(compiler, binary->right).type == TOKEN_INTEGER) {
         bothInts(compiler, binary, op, 0);
     }
-    else if (getToken(compiler, binary->left).type == TOKEN_BINARY && getToken(compiler, binary->right).type == TOKEN_BINARY) { 
-        bothInts(compiler, binary, op, 2);
-    }
     else if (getToken(compiler, binary->left).type == TOKEN_FLOAT && getToken(compiler, binary->right).type == TOKEN_FLOAT) {
         bothFloats(compiler, binary, op);
     }
@@ -1011,9 +995,7 @@ static bool isConstant(Compiler* compiler, Expr* expr) {
     switch (expr->type) {
     case EXPR_LITERAL:  return getToken(compiler, expr).type != TOKEN_IDENTIFIER &&
                                getToken(compiler, expr).type != TOKEN_GLYPH;
-    case EXPR_UNARY:    return isConstant(compiler, ((UnaryExpr*)expr)->operand) && 
-                                getToken(compiler, expr).type != TOKEN_PRINT     && 
-                                getToken(compiler, expr).type != TOKEN_PUT; // have to make sure you don't compile 'print's and 'put's away
+    case EXPR_UNARY:    return isConstant(compiler, ((UnaryExpr*)expr)->operand); // have to make sure you don't compile 'print's and 'put's away
     case EXPR_BINARY: {
         if (getToken(compiler, expr).type == TOKEN_EQUALS) return isConstant(compiler, ((BinaryExpr*)expr)->right);
         else return isConstant(compiler, ((BinaryExpr*)expr)->left) && isConstant(compiler, ((BinaryExpr*)expr)->right);

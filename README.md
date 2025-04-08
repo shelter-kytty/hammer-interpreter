@@ -36,7 +36,7 @@ From there I have a lot in mind; type/class definitions, an object model encapsu
 
 ## 1.0.0 (in progress)
 - [ ] Add proper argument count checks to NativeFns missing them
-- [ ] Remove unnecessary token types/features, namely `print`, `put`, `func` and `let`, and their corresponding opcodes
+- [x] Remove unnecessary token types/features, namely `print`, `put`, `func` and `let`, and their corresponding opcodes
 - [ ] Remove the optimising parts of the compiler
 - [ ] Rework `applyOperator()` NativeFn to be variadic
 - [ ] More sensible debug/error messages

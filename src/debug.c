@@ -66,8 +66,6 @@ const char* getInstructionName(int type) {
         case OP_DUPE_TOP:       return "OP_DUPE_TOP";
         case OP_LOADV:          return "OP_LOADV";
         case OP_UNIT:           return "OP_UNIT";
-        case OP_PRINT:          return "OP_PRINT";
-        case OP_PUT:            return "OP_PUT";
         case OP_NOT:            return "OP_NOT";
         case OP_TRUTHY:         return "OP_TRUTHY";
         case OP_ADD:            return "OP_ADD";
@@ -191,10 +189,6 @@ int disassembleInstruction(Chunk* chunk, int offset) {
             return simpleInstruction("OP_FALSE", chunk, offset);
         case OP_UNIT:
             return simpleInstruction("OP_UNIT", chunk, offset);
-        case OP_PRINT:
-            return simpleInstruction("OP_PRINT", chunk, offset);
-        case OP_PUT:
-            return simpleInstruction("OP_PUT", chunk, offset);
         case OP_NOT:
             return simpleInstruction("OP_NOT", chunk, offset);
         case OP_TRUTHY:

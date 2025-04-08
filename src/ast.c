@@ -801,7 +801,6 @@ static const ParseRule rules[] = {
     // Literals :: 23 - 32  := Capture literal tokens, don't take any params
     [TOKEN_IDENTIFIER]          = { literal,    NULL,       PREC_NONE }, // Literals found as infix expressions could be considered "virtual" apply ops
     [TOKEN_INTEGER]             = { literal,    NULL,       PREC_NONE },
-    [TOKEN_BINARY]              = { literal,    NULL,       PREC_NONE },
     [TOKEN_FLOAT]               = { literal,    NULL,       PREC_NONE },
     [TOKEN_STRING]              = { literal,    NULL,       PREC_NONE },
     [TOKEN_FORMAT_STRING]       = { literal,    NULL,       PREC_NONE },
@@ -813,9 +812,6 @@ static const ParseRule rules[] = {
     [TOKEN_GLYPH]               = { literal,    NULL,       PREC_NONE },
 
     // Keywords :: 33 - 47  := Some are infix operators, but most will be prefix or mixfix
-    [TOKEN_VAR]                 = { NULL,       NULL,       PREC_NONE },        // UNUSED
-    [TOKEN_LET]                 = { NULL,       NULL,       PREC_NONE },        // UNUSED
-    [TOKEN_FUNC]                = { NULL,       NULL,       PREC_NONE },        // UNUSED
     [TOKEN_IF]                  = { _if,        NULL,       PREC_CONDITIONAL },
     [TOKEN_THEN]                = { NULL,       NULL,       PREC_NONE },
     [TOKEN_ELSE]                = { NULL,       NULL,       PREC_NONE },
@@ -826,8 +822,6 @@ static const ParseRule rules[] = {
     [TOKEN_AND]                 = { NULL,       binary,     PREC_AND },
     [TOKEN_OR]                  = { NULL,       binary,     PREC_OR },
     [TOKEN_IN]                  = { NULL,       binary,     PREC_COMPARISON },
-    [TOKEN_PUT]                 = { unary,      NULL,       PREC_NONE },
-    [TOKEN_PRINT]               = { unary,      NULL,       PREC_NONE },
     [TOKEN_RETURN]              = { unary,      NULL,       PREC_NONE },
 
     // Control :: 48 - 51   := Nothing, should not be parsed 

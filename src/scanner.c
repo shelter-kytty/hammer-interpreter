@@ -59,7 +59,6 @@ void printToken(const Token* token) {
         // Literals :: 23 - 32
         case TOKEN_IDENTIFIER:      printf("idf: %.*s\n", token->length, token->start); break;
         case TOKEN_INTEGER:         printf("int: %.*s\n", token->length, token->start); break;
-        case TOKEN_BINARY:          printf("bin: %.*s\n", token->length, token->start); break;
         case TOKEN_FLOAT:           printf("flt: %.*s\n", token->length, token->start); break;
         case TOKEN_STRING:          printf("str: %.*s\n", token->length - 2, token->start + 1); break;
         case TOKEN_FORMAT_STRING:   printf("str: %.*s\n", token->length - 3, token->start + 2); break;
@@ -71,9 +70,6 @@ void printToken(const Token* token) {
         case TOKEN_GLYPH:           printf("glph: %.*s\n", token->length, token->start); break;
 
         // Keywords :: 33 - 47
-        case TOKEN_VAR:             printf("var\n"); break;
-        case TOKEN_LET:             printf("let\n"); break;
-        case TOKEN_FUNC:            printf("func\n"); break;
         case TOKEN_IF:              printf("if\n"); break;
         case TOKEN_THEN:            printf("then\n"); break;
         case TOKEN_ELSE:            printf("else\n"); break;
@@ -84,8 +80,6 @@ void printToken(const Token* token) {
         case TOKEN_AND:             printf("and\n"); break;
         case TOKEN_OR:              printf("or\n"); break;
         case TOKEN_IN:              printf("in\n"); break;
-        case TOKEN_PRINT:           printf("print\n"); break;
-        case TOKEN_PUT:             printf("put\n"); break;
         case TOKEN_RETURN:          printf("return\n"); break;
 
         // Control :: 48 - 51
@@ -261,7 +255,6 @@ static TokenType identifierType(Scanner* scanner) {
         switch (scanner->start[1]) {
         case 'a': return idToken(scanner, "lse", 2, 3, TOKEN_FALSE);
         case 'r': return idToken(scanner, "st", 2, 2, TOKEN_CAR);
-        case 'u': return idToken(scanner, "nc", 2, 2, TOKEN_FUNC);
         }
         break;
     }
@@ -272,16 +265,8 @@ static TokenType identifierType(Scanner* scanner) {
         }
         break;
     }
-    case 'l': return idToken(scanner, "et", 1, 2, TOKEN_LET);
     case 'm': return idToken(scanner, "atch", 1, 4, TOKEN_MATCH);
     case 'o': return idToken(scanner, "r", 1, 1, TOKEN_OR);
-    case 'p': {
-        switch (scanner->start[1]) {
-        case 'r': return idToken(scanner, "int", 2, 3, TOKEN_PRINT);
-        case 'u': return idToken(scanner, "t", 2, 1, TOKEN_PUT);
-        }
-        break;
-    }
     case 'r': return idToken(scanner, "eturn", 1, 5, TOKEN_RETURN);
     case 's': return idToken(scanner, "cnd", 1, 3, TOKEN_CDR);
     case 't': {
@@ -292,7 +277,6 @@ static TokenType identifierType(Scanner* scanner) {
         break;
     }
     case 'u': return idToken(scanner, "nit", 1, 3, TOKEN_UNIT);
-    case 'v': return idToken(scanner, "ar", 1, 2, TOKEN_VAR);
     default: break;
     }
 
