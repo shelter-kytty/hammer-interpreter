@@ -35,9 +35,9 @@ My main goals are to clean up the project, removing things that *should have bee
 From there I have a lot in mind; type/class definitions, an object model encapsulating all basic types, embedding capabilities, including other source files and namespaces, libraries for everything from parsing JSON to interfacing with C/C++ libraries, a serialisation for Hammer object code akin to `.pyc`. But those are just ideas.
 
 ## 1.0.0 (in progress)
-- [ ] Add proper argument count checks to NativeFns missing them
+- [x] Add proper argument checks to NativeFns missing them
 - [x] Remove unnecessary token types/features, namely `print`, `put`, `func` and `let`, and their corresponding opcodes
 - [ ] Remove the optimising parts of the compiler
-- [ ] Rework `applyOperator()` NativeFn to be variadic
+- [x] Rework `applyOperator()` NativeFn to be variadic
 - [ ] More sensible debug/error messages
 - [ ] More consistent/better formatting for control flow, etc.

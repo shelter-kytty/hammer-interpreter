@@ -129,35 +129,29 @@ void defineNative(VM* vm, const char* name, NativeFn function, int arity) {
 
 
 bool clockNative(VM* vm, int argc, Value* argv) {
-    if (argc > 0) {
-        runtimeError(vm, "'clock' takes 0 arguments");
-        return false;
-    }
     returnNative(vm, argc, FLOAT_VAL((double)clock() / CLOCKS_PER_SEC));
     return true;
 }
 
 bool exitNative(VM* vm, int argc, Value* argv) {
-    if (!IS_INT(argv[0]) || argc > 1) {
-        runtimeError(vm, "'exit' takes 1 int as it's argument");
+    if (!IS_INT(argv[0])) {
+        runtimeError(vm, "exit$ : Expected int, got %s", getValName(argv[0]));
         return false;
     }
     runtimeError(vm, "Exited with code %lli", AS_INT(argv[0]));
     return false;
 }
 
+// Change format for printf/n? currently '{n}' is the format but this means you cant just, put a number
+// between braces. I think something like the C format with a single, simple preceding character could
+// work, could use '%n' or similar. Would allow for escaping the format more easily.
 static inline bool isIntChar(char ch) {
     return ch >= '0' && ch <= '9';
 }
 
 bool printfNative(VM* vm, int argc, Value* argv) {
-    if (argc < 1) {
-        runtimeError(vm, "PRINTF : Must have AT LEAST 1 arg");
-        return false;
-    }
-
     if (!IS_STRING(argv[0])) {
-        runtimeError(vm, "PRINTF : Arg 1 must be a string")
+        runtimeError(vm, "printf$ : Expected string, got %s", getValName(argv[0]));
         return false;
     }
 
@@ -173,7 +167,7 @@ bool printfNative(VM* vm, int argc, Value* argv) {
             long slot = strtol(format, &end, 10) + 1; // 0-indexed
 
             if (slot > argc - 1) {
-                runtimeError(vm, "PRINTF : Cannot index outside of args");
+                runtimeError(vm, "printf$ : Attempted to index out of args; got %d with %d args", slot, argc-1);
                 return false;
             }
 
@@ -182,7 +176,7 @@ bool printfNative(VM* vm, int argc, Value* argv) {
             format = end;
 
             if (*format != '}') {
-                runtimeError(vm, "PRINTF : Expected '}' in format");
+                runtimeError(vm, "printf$ : Expected '}' in format");
                 return false;
             }
             
@@ -199,13 +193,8 @@ bool printfNative(VM* vm, int argc, Value* argv) {
 }
 
 bool printfnNative(VM* vm, int argc, Value* argv) {
-    if (argc < 1) {
-        runtimeError(vm, "PRINTFN : Must have AT LEAST 1 arg");
-        return false;
-    }
-
     if (!IS_STRING(argv[0])) {
-        runtimeError(vm, "PRINTFN : Arg 1 must be a string")
+        runtimeError(vm, "printfn$ : Expected string, got %s", getValName(argv[0]));
         return false;
     }
 
@@ -221,7 +210,7 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
             long slot = strtol(format, &end, 10) + 1; //0-indexed
 
             if (slot > argc - 1) {
-                runtimeError(vm, "PRINTFN : Cannot index outside of args");
+                runtimeError(vm, "printfn$ : Attempted to index out of args; got %d with %d args", slot, argc-1);
                 return false;
             }
 
@@ -230,7 +219,7 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
             format = end;
 
             if (*format != '}') {
-                runtimeError(vm, "PRINTFN : Expected '}' in format");
+                runtimeError(vm, "printfn$ : Expected '}' in format");
                 return false;
             }
             
@@ -248,12 +237,8 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
     return true;
 }
 
-bool typeOfNative(VM* vm, int argc, Value* argv) {
-    if (argc != 1) {
-        runtimeError(vm, "TYPEOF : Takes 1 arg");
-        return false;
-    }
 
+bool typeOfNative(VM* vm, int argc, Value* argv) {
     returnNative(vm, argc, INT_VAL(
         IS_OBJ(argv[0]) 
         ? (long long)(OBJ_TYPE(argv[0]) + VAL_OBJ)
@@ -264,29 +249,19 @@ bool typeOfNative(VM* vm, int argc, Value* argv) {
 }
 
 bool lenNative(VM* vm, int argc, Value* argv) {
-    if (argc != 1) {
-        runtimeError(vm, "LEN : Takes 1 arg");
-        return false;
-    }
-
     if (!IS_OBJ(argv[0])) {
-        runtimeError(vm, "LEN : Expected type with length, got %s", getValName(argv[0]));
+        runtimeError(vm, "len$ : Expected string or list, got %s", getValName(argv[0]));
         return false;
     }
 
     switch (OBJ_TYPE(argv[0])) {
     case OBJ_STRING:    returnNative(vm, argc, INT_VAL(AS_STRING(argv[0])->length)); return true;
     case OBJ_LIST:      returnNative(vm, argc, INT_VAL(ARRAY(argv[0]).count)); return true;
-    default: runtimeError(vm, "LEN : Expected type with length, got %s", getValName(argv[0])); return false;
+    default: runtimeError(vm, "len$ : Expected string or list, got %s", getValName(argv[0])); return false;
     }
 }
 
 bool addOperator(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "ADD : Takes 2 args");
-        return false;
-    }
-
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -318,11 +293,6 @@ bool addOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool subOperator(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "SUB : Takes 2 args");
-        return false;
-    }
-
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -354,11 +324,6 @@ bool subOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool mulOperator(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "MUL : Takes 2 args");
-        return false;
-    }
-
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -390,11 +355,6 @@ bool mulOperator(VM* vm, int argc, Value* argv) {
 }
 
 bool divOperator(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "DIV : Takes 2 args");
-        return false;
-    }
-
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -425,12 +385,7 @@ bool divOperator(VM* vm, int argc, Value* argv) {
     return true;
 }
 
-bool powOperator(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "POW : Takes 2 args");
-        return false;
-    }
-
+bool modOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
     Value c;
@@ -461,14 +416,9 @@ bool powOperator(VM* vm, int argc, Value* argv) {
     return true;
 }
 
-bool modOperator(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "MOD : Takes 2 args");
-        return false;
-    }
-
-    Value b = pop(vm);
-    Value a = pop(vm);
+bool powOperator(VM* vm, int argc, Value* argv) {
+    Value b = argv[0];
+    Value a = argv[1];
     Value c;                        
     
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
@@ -497,43 +447,33 @@ bool modOperator(VM* vm, int argc, Value* argv) {
     return true;
 }
 
-bool applyOperator(VM* vm, int argc, Value* argv) {
-    Value f = argv[0];
-    Value x = argv[1];
-
-    returnNative(vm, argc, UNIT_VAL);
-    pop(vm); // remove the unit val
-
-    push(vm, f);
-
-    if (IS_LIST(x)) {
-        for (int i = 0; i < ARRAY(x).count; ++i) {
-            push(vm, ARRAY(x).values[i]);
-        }
-    }
-    else {
-        push(vm, x);
-    }
-
-    if (!callValue(vm, f, IS_LIST(x) ? ARRAY(x).count : 1)) {
+bool applyNative(VM* vm, int argc, Value* argv) {
+    if (!IS_CALLABLE(argv[0])) {
+        runtimeError(vm, "apply$ : Expected callable, got %s", getValName(argv[0]));
         return false;
     }
 
+    #ifdef DEBUG_DISPLAY_STACK
+    for (Value* ptr = vm->stack; ptr < vm->stackTop; ptr++) {
+        printValue(*ptr);
+        printf(" | ");
+    }
+    printf("\n");
+    #endif
+
+    if (!callFromC(vm, argv[0], argc-1)) {
+        return false;
+    }
+
+    returnNative(vm, 0, pop(vm));
     return true;
 }
 
 bool mapNative(VM* vm, int argc, Value* argv) {
-    if (argc != 2) {
-        runtimeError(vm, "map$ : Expected 2 arguments, got %d", argc);
-        return false;
-    }
-
-
     if (!IS_CALLABLE(argv[0])) {
         runtimeError(vm, "map$ : Expected callable, got %s", getValName(argv[0]));
         return false;
     }
-
     if (!IS_LIST(argv[1])) {
         runtimeError(vm, "map$ : Expected list, got %s", getValName(argv[1]));
         return false;
@@ -576,6 +516,10 @@ bool mapNative(VM* vm, int argc, Value* argv) {
 }
 
 bool filterNative(VM* vm, int argc, Value* argv) {
+    if (!IS_CALLABLE(argv[0])) {
+        runtimeError(vm, "filter$ : Expected callable, got %s", getValName(argv[0]));
+        return false;
+    }
     if (!IS_LIST(argv[1])) {
         runtimeError(vm, "filter$ : Expected list, got %s", getValName(argv[1]));
         return false;
@@ -616,6 +560,10 @@ bool filterNative(VM* vm, int argc, Value* argv) {
 }
 
 bool zipNative(VM* vm, int argc, Value* argv) {
+    if (!IS_CALLABLE(argv[0])) {
+        runtimeError(vm, "zip$ : Expected callable, got %s", getValName(argv[0]));
+        return false;
+    }
     if (!IS_LIST(argv[1]) || !IS_LIST(argv[2])) {
         runtimeError(vm, "zip$ : Expected lists, got %s and %s", getValName(argv[1]), getValName(argv[2]));
         return false;
@@ -705,13 +653,16 @@ bool revNative(VM* vm, int argc, Value* argv) {
         return true;
     }
     else {
-        runtimeError(vm, "REV : Expected ordered type, got %s", getValName(to_reverse));
+        runtimeError(vm, "rev$ : Expected string or list, got %s", getValName(to_reverse));
         return false;
     }
 }
 
 // Need to fix :: replace the weird bits with callFromC()
 bool foldlNative(VM* vm, int argc, Value* argv) {
+    if (!IS_CALLABLE(argv[0])) {
+        runtimeError(vm, "foldl$ : Expected callable, got %s", getValName(argv[0]));
+    }
     if (!IS_LIST(argv[1])) {
         runtimeError(vm, "foldl$ : Expected list, got %s", getValName(argv[1]));
         return false;
@@ -760,6 +711,9 @@ bool foldlNative(VM* vm, int argc, Value* argv) {
 }
 
 bool foldrNative(VM* vm, int argc, Value* argv) {
+    if (!IS_CALLABLE(argv[0])) {
+        runtimeError(vm, "foldr$ : Expected callable, got %s", getValName(argv[0]));
+    }
     if (!IS_LIST(argv[1])) {
         runtimeError(vm, "foldr$ : Expected list, got %s", getValName(argv[1]));
         return false;
@@ -845,7 +799,7 @@ void initVM(VM* vm) {
     defineNative(vm, "filter", filterNative, 2);
     defineNative(vm, "foldl", foldlNative, 2);
     defineNative(vm, "foldr", foldrNative, 2);
-    defineNative(vm, "apply", applyOperator, 2);
+    defineNative(vm, "apply", applyNative, -2);
 
     // TODO: Implement these as actual addition, subtraction,
     // cons, etc. operators to make the glyph system work better
@@ -853,9 +807,9 @@ void initVM(VM* vm) {
     defineNative(vm, "-", subOperator, 2);
     defineNative(vm, "*", mulOperator, 2);
     defineNative(vm, "/", divOperator, 2);
-    defineNative(vm, "%%", modOperator, 2);
+    defineNative(vm, "%", modOperator, 2);
     defineNative(vm, "^", powOperator, 2);
-    defineNative(vm, "$", applyOperator, 2);
+    defineNative(vm, "$", applyNative, -2);
 }
 
 void freeVM(VM* vm) {
