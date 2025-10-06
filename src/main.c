@@ -78,7 +78,7 @@ static void writeFile(const char* path, const char* data) {
         exit(74);
     }
 
-    fprintf(file, data);
+    fputs(data, file);
 
     printf("Successfully wrote to '%s'", newPath);
     
