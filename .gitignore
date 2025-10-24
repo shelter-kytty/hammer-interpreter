@@ -1,0 +1,8 @@
+# files types to ignore
+*.exe
+*.o
+*.c.d
+
+# directories to ignore
+/build
+/notes

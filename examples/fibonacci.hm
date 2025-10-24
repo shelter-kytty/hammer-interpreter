@@ -1,0 +1,166 @@
+
+fibNaive : n = {
+    if n < 2 
+    then n 
+    else fibNaive(n - 1) + fibNaive(n - 2)
+}
+
+a1 = clock()
+
+print fibNaive(8)
+
+b1 = clock()
+
+printf(f"Took {0} seconds\n" ; b1 - a1)
+
+
+
+m = [1 1]
+
+fibMemo : n = {
+    m[n] or {m << fibMemo(n - 1) + fibMemo(n - 2) ; m[len(m)]}
+}
+
+a2 = clock()
+
+print fibMemo(8)
+
+b2 = clock()
+
+printf(f"Took {0} seconds\n" ; b2 - a2)
+
+
+
+fibLog : n = {
+    fibInner : a b p q n = {
+        if n == 0 then b else {
+            if n % 2 == 0 then {
+                <- fibInner(
+                    a b
+                    p * p + q * q
+                    2 * p * q + q * q
+                    n / 2
+                )
+            } else {
+                <- fibInner(
+                    b * q + a * q + a * p
+                    b * p + a * q
+                    p q
+                    n - 1
+                )
+            }
+        }
+    }
+
+    fibInner(1 0 0 1 n)
+}
+
+a3 = clock()
+
+print fibLog(80)
+
+b3 = clock()
+
+printf(f"fibLog took {0} seconds\n" ; b3 - a3)
+
+
+
+fibTail : n = {
+    fibInner : n a b = {
+        if n == 0 then a else {
+            <- fibInner(n - 1 ; b ; a + b)
+        }
+    }
+
+    <- fibInner(n 0 1)
+}
+
+a4 = clock()
+
+print fibTail(80)
+
+b4 = clock()
+
+printf(f"fibTail took {0} seconds\n" ; b4 - a4)
+
+
+
+lucas : n = 1.6180339887498948482^n / 2.2360679774998
+
+a5 = clock()
+
+print lucas(80)
+
+b5 = clock()
+
+printf(f"Lucas took {0} seconds\n" ; b5 - a5)
+
+
+
+
+trans : mat = {
+    prepped = map(foldr(_ : x y = x , y ; _) ; mat)
+
+    ret = []
+
+    helper : a = {
+        if typeOf(a[1]) == typeOf(0 , 0)
+        then {
+            ret << map(_ : x = frst x ; a)
+            b = map(_ : x = scnd x ; a)
+            if typeOf(b[1]) == typeOf(0 , 0)
+            then <- helper(b)
+            else ret << b
+        }
+        else ret
+    }
+
+    helper(prepped)
+}
+
+`# : a b = {
+    if len(a[1]) != len(b)
+    then return unit
+    else unit
+
+    c = trans(b)
+
+    Galbo : x = {
+        c_ij : r c = {
+            foldl(`+ ; zip(`* r c))
+        }
+        map(c_ij(x ; _) ; c)
+    }
+    
+    map(Galbo ; a)
+}
+
+fib_Max : n = {
+    if n <= 0 then 
+    return 0 
+    else unit
+    
+    i = n - 1
+    f = [[1;0];[0;1]]
+    a = [[0;1];[1;1]]
+
+    helper : I F A = {
+        if I > 0 
+        then
+            if I % 2 == 0
+            then <- helper({I / 2} ; F ; A#A)
+            else <- helper({I / 2} ; F#A ; A#A)
+        else
+            F[2][2]
+    }
+
+    helper(i;f;a)
+}
+
+a6 = clock()
+
+print fib_Max(80)
+
+b6 = clock()
+
+printf(f"Max took {0} seconds\n" ; b6 - a6)

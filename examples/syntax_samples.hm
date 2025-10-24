@@ -1,0 +1,438 @@
+
+
+err :         = print "[ Error ] could not parse for op"
+pow : x y     = x^y
+sqr : x       = x*2
+mid : x y z   = x + {{y - x} * z}
+
+
+tally = 0
+
+pow_two : x = {
+    if x 
+    then x*2
+    else 1
+}
+
+inc_by_result : f i = {
+    i + f(i)
+}
+
+apply_tally := {
+    _ := inc_by_result(pow_two ; tally)
+}
+
+collate : x = {
+    if x > 0 then {
+        apply_tally(), collate(x - 1)
+    } else {
+        unit
+    }
+}
+
+exec : fns = {
+    head = frst fns
+    tail = scnd fns
+
+    head()
+    
+    if tail != unit then {
+        exec(tail)
+    } else {
+        print "cycle complete"
+    }
+}
+
+exec(collate(100))
+
+
+
+
+lower = 0
+
+upper = 60
+
+before = clock$
+
+collate : x y = if x <= y then x^2, collate(x + 1 ; y) else unit
+
+sum : chain = {
+    head = frst chain
+    tail = scnd chain
+    
+    if tail != unit 
+    then head + sum(tail)
+    else head
+}
+
+ttl = sum(print collate(lower ; upper))
+
+after = clock()
+
+printf(f"Measured {0} seconds before and {1} seconds \n\
+after, totalling roughly {2} seconds to compute \n\
+{3} with bounds {4} and {5}\n" ; before ; after ; after - before ; ttl ; lower ; upper
+)
+
+
+// Create closures
+init : x y f = {
+    printf(f"init:\nx = {0}\ny = {1}\nf = {2}\n" ; x ; y ; f)
+    if x > y then {
+        f(x), init(x - 1 ; y ; f)
+    } else {
+        unit
+    }
+}
+
+// Fill list with captured results
+fill : x y chain = {
+    printf(f"fill:\nx = {0}\ny = {1}\nchain = {2}\n" ; x ; y ; chain)
+
+    g = car chain
+    tail = cdr chain
+
+    if tail != unit then {
+        g(y), fill(x ; y + 1 ; tail)
+    } else {
+        g(y), tail
+    }
+}
+
+// Display results
+enum : chain = {
+    printf(f"enum:\nchain = {1}\n" ; chain)
+    head = car chain
+    tail = cdr chain
+
+    print head
+
+    if tail != unit then {
+        enum(tail)
+    } else {
+        print "Complete"
+    }
+}
+
+
+start = 0
+end = 10
+
+enum(fill(end) ; start ; init(end ; start ; {_ : x = _ : y = x+y}))
+
+
+// Lady or girl test
+
+// Encounters a stack overflow at values higher than 4 ;-;
+// Returns the right values, though, idk how. The amount of stack
+// frames needed for 10 is like 1150, so that's not happening lmfaoo
+// idek how it USES that much, it's such a weird and contrived algorithm
+
+a : k x1 x2 x3 x4 x5 = {
+    a_ = a
+
+    b := {
+        g = k - 1
+        <- a_$ g b x1 x2 x3 x4
+    }
+
+    if k <= 0 then x4() + x5() else <- b()
+}
+
+print a(3 ; {_ := 1} ; {_ := -1} ; {_ := -1} ; {_ := 1} ; {_ := 0})
+
+
+
+
+foldr({_ : x y = x + y} ; 1 .. 100)
+|> { _ : x = x/len(l) }
+|> printf(f"The average is {0}\n" ; _)
+
+
+
+
+
+quibble : words = {
+    put "{"
+
+    // Big stupid if statement
+    worry : words = {
+        type = typeOf(words)
+        if type == 0 then {
+            print "}"
+        } else if type == 5 then {
+            printf(f"{0}}\n" words)
+        } else if type == 6 then {
+            if typeOf(cdr words) == 5 then {
+                printf(f"{0} and {1}}\n" ; car words ; cdr words)
+            } else {
+                printf(f"{0}, " ; car words)
+                worry(cdr words)
+            }
+        } else unit
+    }
+
+    worry(words)
+}
+
+quibble({})
+quibble({"ABC"})
+quibble({"ABC" , "DEF"})
+quibble({"ABC" , "DEF" , "G" , "H"})
+quibble({"Me" , "myself" , "I"})
+quibble({"Jack" , "Jill"})
+
+
+
+// "Hashtable" implemented with cons cells
+// It actually works though, which is hilarious
+// '()' offsets final element, so that entries are always 
+// in car and the table/end is always in cdr
+table = {"A", 1} , {"B", 2} , {"C", 3} , {"D", 4}, unit
+
+tableGet : table key = {
+    entry = car table
+
+    if { car entry } == key then cdr entry else {
+        if cdr table then {
+            tableGet(cdr table ; key)
+        } else {
+            unit
+        }
+    }
+}
+
+tableAdd : table key value = {
+    cons cons key value table
+}
+
+tableDelete : table key = {
+    if table then {
+        entry = car table
+    
+        if {car entry} == key then {
+            cdr table
+        } else {
+            entry , tableDelete(cdr table ; key)
+        }
+    } else unit
+}
+
+forEntries : table op = {
+    if table then {
+        op(car table)
+        forEntries(cdr table ; op)
+    } else unit
+}
+
+printEntry : entry = printf(f"{0} => {1}\n" ; car entry ; cdr entry )
+
+value = tableGet(table "B")
+
+tmpTable = tableAdd(table "F" 6)
+
+newTable = tableAdd(tmpTable "E" 5)
+
+print tableGet(newTable "E")
+
+print tableGet(newTable "F")
+
+tableSmaller = tableDelete(newTable "F")
+
+printfn(f"\nOG:")
+forEntries(table printEntry)
+printfn(f"\nLorge:")
+forEntries(newTable printEntry)
+printfn(f"\nSmol:")
+forEntries(tableSmaller printEntry)
+
+
+
+
+foldt : f l = {
+    left = car l
+    right = cdr l
+    
+    if typeOf(right) == 6 then {
+        if typeOf(left) == 6
+        then <- f(
+            foldt(f left) 
+            foldt(f right)
+        )
+        else <- f(
+            left 
+            foldt(f right)
+        )
+    } else {
+        if typeOf(left) == 6
+        then <- f(
+            foldt(f left) 
+            right
+        )
+        else <- f(
+            left 
+            right
+        )
+    }
+}
+
+trans : c = {
+    left = car c
+    right = cdr c
+
+    if typeOf(right) == 6 then {
+        if typeOf(left) == 6 
+        then trans(right) , trans(left)
+        else trans(right) , left
+    } else {
+        if typeOf(left) == 6
+        then right , trans(left)
+        else right , left
+    }
+}
+
+minus : x y = x - y
+ccons : x y = x , y
+snocc : x y = y , x
+list = 1 .. 5
+
+
+
+r = foldr(minus ; list)
+
+l = foldl(minus ; list)
+
+print("{0}";r)
+print("{0}";l)
+
+
+rtmp = printf("{0}";foldr(ccons ; list))
+ltmp = printf("{0}";foldl(ccons ; list))
+wrrd = printf("{0}";foldr(snocc ; list))
+drrw = printf("{0}";foldl(snocc ; list))
+
+a = printf("{0}";foldt(minus ; rtmp))
+b = printf("{0}";foldt(minus ; ltmp))
+c = printf("{0}";foldt(minus ; wrrd))
+d = printf("{0}";foldt(minus ; drrw))
+
+x = printf("{0}";trans(rtmp))
+y = printf("{0}";trans(ltmp))
+z = printf("{0}";trans(wrrd))
+w = printf("{0}";trans(drrw))
+
+printf("{0}";foldt(minus ; x))
+printf("{0}";foldt(minus ; y))
+printf("{0}";foldt(minus ; z))
+printf("{0}";foldt(minus ; w))
+
+
+// Fn composition
+// Creates a lambda at runtime that just calls the functions one
+// after the other, nothing crazy
+mul : x y = x*y
+double : x = <- mul(x ; 2)
+
+div : x y = x/y
+half : x = <- div(x ; 2)
+
+tmp : x = <- half(double(x))
+
+
+test = half . double
+
+print test(2)
+
+
+test_2 = half . mul
+
+print test_2(3 ; 6)
+
+
+test_3 = double . double . div
+
+printfn("{0}";test_3(10 ; 5))
+
+first : x = {
+    printfn("I'm first!")
+    <- x * 2
+}
+
+second : x = {
+    printfn("I'm second")
+    <- x^2
+}
+
+both = second . first
+
+printfn("{0}";both(1))
+
+
+
+
+
+
+
+// comparing 'and'/'or' operators
+eval : x y op = {
+    if op(x y) then printfn("A true statement!") else printfn("A false statement...")
+}
+
+_and : x y = {
+    if x then (y?) else false
+}
+
+_or : x y = {
+    if x then true else y?
+}
+
+eval$ (5 == 5) (typeOf(5) == 2) _and
+eval$ (5 < 2) (5 > 4) _or
+
+eval$ () true _and
+eval$ () true _or
+
+eval$ false (3 < 1) _and
+eval$ (8 >= 9) (2 == 1) _or
+
+wrapped_and : x y = {
+    x and y
+}
+
+wrapped_or : x y = {
+    x or y
+}
+
+print "Optimised:"
+eval$ (5 == 5) (typeOf(5) == 2) wrapped_and
+eval$ (5 < 2) (5 > 4) wrapped_or
+
+eval$ () true wrapped_and
+eval$ () true wrapped_or
+
+eval$ false (3 < 1) wrapped_and
+eval$ (8 >= 9) (2 == 1) wrapped_or
+
+print "Plain:"
+if 5 == 5 and typeOf(5) == 2 then printfn("A true statement!") else printfn("A false statement...")
+if 5 < 2 or 5 > 4 then printfn("A true statement!") else printfn("A false statement...")
+
+if () and true then printfn("A true statement!") else printfn("A false statement...")
+if () or true then printfn("A true statement!") else printfn("A false statement...")
+
+if false and 3 < 1 then printfn("A true statement!") else printfn("A false statement...")
+if 8 >= 9 or 2 == 1 then printfn("A true statement!") else printfn("A false statement...")
+
+
+
+// Custom operators
+// This one splits lists by the right operand
+
+`<|> : a b = a[:b] , a[b+1:] 
+
+list = 1 .. 10
+
+lower , upper = list <|> 5
+
+printf("{0}";lower)
+printf("{0}";upper)

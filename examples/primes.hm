@@ -1,0 +1,85 @@
+
+
+LT = -1
+EQ =  0
+GT =  1
+
+`<=> : x y = if x == y then EQ else if x > y then GT else LT
+
+`... : x c = {
+    a , b = x
+    step = b - a
+
+    helper : step n = {
+        next = n+step
+
+        match next+step <=> c
+        | LT => next , helper(step ; next)
+        | EQ => next , next+step
+        | GT => next
+    }
+    
+    a , b , helper(step ; b)
+}
+
+`-- : a b = {
+    printf(f"a = {0}\nb = {1}\n" ; a ; b)
+    if typeOf(a) != 6 or typeOf(b) != 6
+    then return a 
+    else unit
+
+    x , xs = a
+    y , ys = b
+
+    printf(f"x = {0}\nxs = {1}\n" ; x ; xs)
+    printf(f"y = {0}\nys = {1}\n" ; y ; ys)
+
+    match x <=> y
+    | LT => x , {xs -- {y,ys}}
+    | EQ => {xs -- ys}
+    | GT => {{x,xs} -- ys}
+}
+
+primesTo : m = {
+    start =  3,5 ... m 
+    sieve : list = {
+        p , ps = list
+
+        if p*p > m
+        then list
+        else p , sieve(ps -- {p*p,p*p+2*p ... m})
+    }
+
+    2 , sieve(start)
+}
+
+printfn("{0}";primesTo(22))
+
+
+
+
+
+
+
+
+wilson : n = {
+    result = []
+
+    helper : i last = {
+        fac = last * {i - 1}
+
+        if {fac+1} % i == 0 
+        then { result << i }
+        else unit 
+
+        if i < n
+        then <- helper(i+1 ; fac)
+        else unit
+    }
+
+    helper(2 ; 1)
+
+    return result
+}
+
+printfn("{0}";wilson(100);
