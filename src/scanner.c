@@ -83,7 +83,6 @@ void printToken(const Token* token) {
         case TOKEN_RETURN:          printf("return\n"); break;
 
         // Control :: 48 - 51
-        case TOKEN_BREAK:           printf("-break-\n"); break;
         case TOKEN_SOF:             printf("SOF\n"); break;
         case TOKEN_EOF:             printf("EOF\n"); break;
         case TOKEN_ERROR:           printf("[ Error at line %d ]: %s\n", token->line, token->start); break;

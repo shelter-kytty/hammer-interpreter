@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "compiler.h"
 #include "vm.h"
+#include "serialise.h"
 
 /*
 +=====================+
@@ -315,9 +316,7 @@ static void glare(ProgramTree* tree, TokenType expected, const char* msg) {
 }
 
 static void crossLine(ProgramTree* tree) {
-    if (!match(tree, TOKEN_BREAK)) {
-        match(tree, TOKEN_SEMICOLON);
-    }
+    match(tree, TOKEN_SEMICOLON);
 }
 
 simple bool atEnd(ProgramTree* tree) {
@@ -386,9 +385,7 @@ static Expr* expression(ProgramTree* tree, Precedence prec) {
 static Expr* topLevel(ProgramTree* tree) {
     Expr* expr = expression(tree, PREC_NONE);
 
-    if (!match(tree, TOKEN_BREAK)) {
-        match(tree, TOKEN_SEMICOLON);
-    }
+    match(tree, TOKEN_SEMICOLON);
 
     if (tree->panicMode) {
         panic(tree);
@@ -425,8 +422,6 @@ static void listArgs(ProgramTree* tree, BlockExpr* list) {
 }
 
 static void container(ProgramTree* tree, BlockExpr* container) {
-    match(tree, TOKEN_BREAK);
-
     Expr* first = expression(tree, PREC_GENERIC_LOW);
 
     if (check(tree, TOKEN_ROCKET)) {
@@ -581,17 +576,12 @@ static Expr* _if(ProgramTree* tree, Expr* last) {
     Token operator = advance(tree);
     TernaryExpr* ifExpr = Ternary(tree, operator);
 
-    match(tree, TOKEN_BREAK);
     ifExpr->pivot = expression(tree, PREC_GENERIC_LOW);
 
-    match(tree, TOKEN_BREAK);
     consume(tree, TOKEN_THEN, "Expected then branch");
-    match(tree, TOKEN_BREAK);
     ifExpr->left = expression(tree, PREC_GENERIC_LOW);
 
-    match(tree, TOKEN_BREAK);
     consume(tree, TOKEN_ELSE, "Expected else branch");
-    match(tree, TOKEN_BREAK);
     ifExpr->right = expression(tree, PREC_GENERIC_LOW);
 
     return (Expr*)ifExpr;
@@ -831,7 +821,6 @@ static const ParseRule rules[] = {
     [TOKEN_RETURN]              = { unary,      NULL,       PREC_NONE },
 
     // Control :: 48 - 51   := Nothing, should not be parsed
-    [TOKEN_BREAK]               = { NULL,       NULL,       PREC_NONE },
     [TOKEN_SOF]                 = { NULL,       NULL,       PREC_NONE },
     [TOKEN_EOF]                 = { NULL,       NULL,       PREC_NONE },
     [TOKEN_ERROR]               = { NULL,       NULL,       PREC_NONE },
@@ -937,9 +926,7 @@ void debugAST(const char* source) {
 
     advance(&tree);
 
-    if (!match(&tree, TOKEN_BREAK)) {
-        match(&tree, TOKEN_SEMICOLON);
-    }
+    match(&tree, TOKEN_SEMICOLON);
 
     while (!check(&tree, TOKEN_EOF)) {
         writeExpr(tree.program, topLevel(&tree));
@@ -980,9 +967,7 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
 
     advance(tree);
 
-    if (!match(tree, TOKEN_BREAK)) {
-        match(tree, TOKEN_SEMICOLON);
-    }
+    match(tree, TOKEN_SEMICOLON);
 
     while (!check(tree, TOKEN_EOF)) {
         writeExpr(tree->program, topLevel(tree));
@@ -1001,6 +986,65 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
 /*
 +---------------------------+
 | Token Parsing        ^^^^ |
++---------------------------+
+| Serialising          vvvv |
++---------------------------+
+*/
+
+void serialiseAST(const char* source) {
+    // SETUP ------------------------------- vvvv
+    VM vm; initVM(&vm);
+
+    Compiler compiler; initCompiler(&compiler, &vm, 0, NULL);
+
+    ProgramTree tree;
+    initTree(&tree, source);
+
+    writeToken(&tree, (Token){ TOKEN_SOF, source, 0, 0 });
+    tree.program = Block(&tree, *tree.tokens);
+
+    for (;;) {
+        Token token = scanToken(&tree.scanner);
+
+        writeToken(&tree, token);
+
+        if (token.type == TOKEN_EOF) break;
+    }
+
+    tree.current = tree.tokens;
+
+    #ifdef DEBUG_DISPLAY_TOKENS
+    for (int i = 0; i < tree.tokenCount; ++i) {
+        printf("%04d : ", i);
+        printToken(&tree.tokens[i]);
+    }
+    #endif
+    // SETUP ------------------------------- ^^^^
+
+
+    advance(&tree);
+    match(&tree, TOKEN_SEMICOLON);
+
+    while (!check(&tree, TOKEN_EOF)) {
+        writeExpr(tree.program, topLevel(&tree));
+    }
+
+    printf("Hello :3\n");
+
+    writeExpr(tree.program, (Expr*)Literal(&tree, (Token){TOKEN_UNIT, tree.current->start, 0, tree.current->line}));
+
+    serialiseExpr((Expr*)tree.program);
+
+    freeTree(&tree);
+
+    //endCompiler(&compiler);
+
+    freeVM(&vm);
+}
+
+/*
++---------------------------+
+| Serialising          ^^^^ |
 +---------------------------+
 | Pre-Compilation Step vvvv |
 +---------------------------+

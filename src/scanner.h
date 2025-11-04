@@ -38,8 +38,8 @@ typedef enum {
     TOKEN_AND, TOKEN_OR, TOKEN_IN,
     TOKEN_RETURN,
 
-    // Control :: 57 - 60
-    TOKEN_BREAK, TOKEN_SOF, TOKEN_EOF, TOKEN_ERROR
+    // Control :: 57 - 59
+    TOKEN_SOF, TOKEN_EOF, TOKEN_ERROR
 } TokenType;
 
 typedef struct {

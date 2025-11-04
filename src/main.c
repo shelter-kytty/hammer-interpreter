@@ -10,7 +10,7 @@
 
 static void repl() {
     VM vm;
-    initVM(&vm);    
+    initVM(&vm);
 
     for (;;) {
         char buf[1024];
@@ -81,7 +81,7 @@ static void writeFile(const char* path, const char* data) {
     fputs(data, file);
 
     printf("Successfully wrote to '%s'", newPath);
-    
+
     fclose(file);
     free(newPath);
 }
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 {
     if (argc == 1) {
         repl();
-    } 
+    }
     else if (memcmp(argv[1], "--help", 6) == 0) {
         printf("Usage:\n");
         printf("\thmc\t\t: Initiate a repl\n");
@@ -102,11 +102,10 @@ int main(int argc, char* argv[])
         /* put a .ml file into same dir as [path] */
         char* source = readFile(argv[2]);
 
-        free(source);
+        serialiseAST(source);
 
-        writeFile(argv[2], "did the thing!");
-        printf("%s\n", __FILE__);
-    } 
+        free(source);
+    }
     else if (argc == 2) {
         /* read and execute file without writing anywhere */
         char* source = readFile(argv[1]);
@@ -116,7 +115,7 @@ int main(int argc, char* argv[])
 
         freeVM(&vm);
         free(source);
-    } 
+    }
     else {
         printf("Usage:\n");
         printf("\thmc\t\t: Initiate a repl\n");

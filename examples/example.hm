@@ -43,3 +43,12 @@ D = [
 ]
 
 printfn("Hello, I'm '{0}', I'm a {1} with {2} members. {3}!" ; D["name"] ; D["type"] ; D["members"] ; D["func"](29))
+
+
+E : i = i * 10
+
+F : i = i * 3
+
+G = E . F
+
+printfn("{0}" ; G(3))

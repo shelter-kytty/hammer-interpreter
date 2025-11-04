@@ -1,0 +1,4 @@
+
+A : X Y = X + Y
+
+printfn("Hello, world! {0}!" ; A(2 ; 5))
