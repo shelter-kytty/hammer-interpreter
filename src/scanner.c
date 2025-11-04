@@ -345,9 +345,6 @@ static Token formattedString(Scanner* scanner) {
 // treated with maximal munch (I mean, they already are kinda??? Just gotta have it group any random set
 // together lol))
 
-// Should be easy enough to get something hacky together, maybe have '`' as a mandatory prefix until
-// the whole "organising things into fn calls" thing is sorted out. I don't think it'll be THAT bad, but
-// it'll just take... so, so long
 
 // '[:+-*\=^&/|@<#$!~?>]+'
 bool isGlyph(char c) {

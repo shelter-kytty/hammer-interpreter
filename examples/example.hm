@@ -1,15 +1,21 @@
 
-printf("Hello, world!")
+printfn("Hello, world!")
 
-if true then {
-    printf("True!")
-} else {
-    printf("False!")
-}
+if true then
+    printfn("True!")
+else
+    printfn("False!")
+
 
 A : X Y = X + Y
-printf("{0}" A(1 2))
+
+printfn("{0}" A(1 2))
 
 partial = A(_ ; 10)
 
-printf("{0}" ; partial(3))
+printfn("{0}" ; partial(3))
+
+match 2
+| 1 => printfn("its 1")
+| 2 => printfn("its 2")
+| 3 => printfn("its 3")

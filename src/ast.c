@@ -759,11 +759,6 @@ static Expr* apply(ProgramTree* tree, Expr* last) {
     return (Expr*)application;
 }
 
-// For custom operators: (I assume) the reason languages like F# and Haskell have you place the
-// operator inside parentheses '()' is so that the parser finds it as a prefix expression with
-// no operands, allowing it to assume you're getting the operator literal. It serves the same
-// purpose as the "'" in Lisp, saying "Don't evaluate me, I'm a literal value right now!". Right
-// now I'm doing the same thing with '`', which causes it to parse the operator as a glyph.
 static const ParseRule rules[] = {
     // Symbols :: 0 - 4     := Mostly for parsing stuff
     [TOKEN_LEFT_PAREN]          = { NULL,       apply,      PREC_CALL },
@@ -848,7 +843,7 @@ static const ParseRule* getRule(TokenType type) {
 
 void printExpression(Expr* expression) {
     if (expression == NULL) {
-        printf("[ Error ]\n");
+        printf("[ Error ] expression is none. Segfaulting\n");
         return;
     }
 

@@ -64,7 +64,7 @@ static const char* getName(Compiler* compiler) {
     case FUN_SCRIPT: return "<script>";
     case FUN_LAMBDA: return "<lmbd>";
     case FUN_FUNCTION: return compiler->function->name->chars;
-    default: return "???";
+    default: return "UNKNOWN";
     }
 }
 
@@ -113,7 +113,7 @@ static uint8_t makeConstant(Compiler* compiler, Value value) {
     int constant = addConstant(compiler->vm, currentChunk(compiler), value);
 
     if (constant > UINT8_MAX) {
-        compilerError(compiler, "Too many constants in %s, limit is %d, had %d", getName(compiler), UINT8_MAX, constant);
+        compilerError(compiler, "Too many constants in %s; limit is %d, had %d", getName(compiler), UINT8_MAX, constant);
         return 0;
     }
 
@@ -237,7 +237,7 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
 
     // exit if too many upvalues
     if (upvalueCount == UINT8_COUNT) {
-        compilerError(compiler, "Function has reached upvalue limit");
+        compilerError(compiler, "Too many upvalues in function; limit is %d, had %d", UINT8_COUNT, upvalueCount);
         return -1;
     }
 
@@ -1011,7 +1011,7 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     }
 
     if (((BlockExpr*)ternary->pivot)->count > UINT8_MAX) {
-        compilerError(enclosing, "Too many function args; max is %d, had %d", UINT8_MAX, ((BlockExpr*)ternary->pivot)->count);
+        compilerError(enclosing, "Too many function args; limit is %d, had %d", UINT8_MAX, ((BlockExpr*)ternary->pivot)->count);
         return;
     }
 
