@@ -145,7 +145,7 @@ static void writeExpr(BlockExpr* block, Expr* expr) {
     if (block->capacity < block->count + 1) {
         int oldCapacity = block->capacity;
         block->capacity = GROW_CAP(oldCapacity);
-        block->subexprs = GROW_EXPR_ARRAY(block->subexprs, 
+        block->subexprs = GROW_EXPR_ARRAY(block->subexprs,
             oldCapacity, block->capacity, Expr*);
     }
 
@@ -175,7 +175,7 @@ static void writeToken(ProgramTree* tree, Token token) {
     if (tree->tokenCapacity < tree->tokenCount + 1) {
         int oldCapacity = tree->tokenCapacity;
         tree->tokenCapacity = GROW_CAP(oldCapacity);
-        tree->tokens = GROW_EXPR_ARRAY(tree->tokens, 
+        tree->tokens = GROW_EXPR_ARRAY(tree->tokens,
             oldCapacity, tree->tokenCapacity, Token);
     }
 
@@ -198,7 +198,7 @@ void initTree(ProgramTree* tree, const char* source) {
 
 void freeTree(ProgramTree* tree) {
     FREE_EXPR_ARRAY(tree->tokens, tree->tokenCapacity, Token);
-    
+
     Expr* expr = tree->expressions;
     while (expr != NULL) {
         Expr* next = expr->next;
@@ -224,7 +224,7 @@ typedef enum {
     PREC_ASSIGNMENT,    // = : <<
     PREC_GENERIC_LOW,   // custom
     PREC_CONSTRUCT,     // , .
-    PREC_CONDITIONAL,   // if 
+    PREC_CONDITIONAL,   // if
     PREC_OR,            // or
     PREC_AND,           // and
     PREC_EQUALITY,      // == !=
@@ -233,8 +233,7 @@ typedef enum {
     PREC_FACTOR,        // * / %
     PREC_EXPO,          // ^
     PREC_UNARY,         // ! -
-/*  vvvvvvvvvvvv Replace with 'PREC_GENERIC_HIGH' and remove TOKEN_SPIGOT */
-    PREC_SUBCALL,       // |>
+    PREC_GENERIC_HIGH,  // |> custom
     PREC_CALL,          // () [] $
     PREC_PRIMARY,
 } Precedence;
@@ -335,7 +334,7 @@ static void panic(ProgramTree* tree) {
         if ((getRule(tree->current->type))->head != NULL || tree->current->type == TOKEN_EOF) {
             return;
         }
-        
+
         advance(tree);
     }
 }
@@ -357,7 +356,7 @@ static Expr* expression(ProgramTree* tree, Precedence prec) {
 
     // do a similar thing to the parsing function list in CLox
     // typedef a parsing function ptr and make a list of parse rules
-    // to get some stuff working 
+    // to get some stuff working
     const ParseRule* rule = getRule(token.type);
 
     if (rule->head == NULL) {
@@ -369,9 +368,17 @@ static Expr* expression(ProgramTree* tree, Precedence prec) {
     Expr* last = rule->head(tree, NULL);
 
     while (nextIsTailExpr(tree) && precIsLower(tree, prec, last)) {
+        #ifdef DEBUG_PARSER_PROGRESS
+        printf("Parsed %s\n", getExprName(last->type));
+        #endif
         rule = getRule(getToken(tree).type);
         last = rule->tail(tree, last);
     }
+
+
+    #ifdef DEBUG_PARSER_PROGRESS
+    printf("Parsed %s\n", getExprName(last->type));
+    #endif
 
     return last;
 }
@@ -397,9 +404,9 @@ static void mapArgs(ProgramTree* tree, BlockExpr* map) {
 
         glare(tree, TOKEN_ROCKET, "Expected '=>' between map args");
         Token bisector = advance(tree);
-        
+
         Expr* value = expression(tree, PREC_GENERIC_LOW);
-        
+
         BinaryExpr* pair = Binary(tree, bisector);
         pair->left = key;
         pair->right = value;
@@ -462,7 +469,7 @@ static Expr* map(ProgramTree* tree, Expr* last) {
 
     BlockExpr* array = Block(tree, open);
     container(tree, array);
-    
+
     consume(tree, TOKEN_RIGHT_BRACKET, "Expected ']' after args");
 
     return (Expr*)array;
@@ -473,7 +480,7 @@ static Expr* subscript(ProgramTree* tree, Expr* last) {
     BinaryExpr* binary = Binary(tree, open);
 
     binary->left = last;
-    
+
     if (check(tree, TOKEN_COLON)) {
         Token bisector = advance(tree);
         BinaryExpr* slice = Binary(tree, bisector);
@@ -488,7 +495,7 @@ static Expr* subscript(ProgramTree* tree, Expr* last) {
     }
     else {
         binary->right = expression(tree, PREC_GENERIC_LOW); // Gonna do some stuff with subscripting
-    
+
         if (check(tree, TOKEN_COLON)) {
             Token bisector = advance(tree);
             BinaryExpr* slice = Binary(tree, bisector);
@@ -576,12 +583,12 @@ static Expr* _if(ProgramTree* tree, Expr* last) {
 
     match(tree, TOKEN_BREAK);
     ifExpr->pivot = expression(tree, PREC_GENERIC_LOW);
-    
+
     match(tree, TOKEN_BREAK);
     consume(tree, TOKEN_THEN, "Expected then branch");
     match(tree, TOKEN_BREAK);
     ifExpr->left = expression(tree, PREC_GENERIC_LOW);
-    
+
     match(tree, TOKEN_BREAK);
     consume(tree, TOKEN_ELSE, "Expected else branch");
     match(tree, TOKEN_BREAK);
@@ -599,7 +606,7 @@ static Expr* block(ProgramTree* tree, Expr* last) {
         LiteralExpr* unit = Literal(tree, (Token){TOKEN_UNIT, open.start, open.length, open.line});
         return (Expr*)unit;
     }
-    
+
     BlockExpr* blck = Block(tree, open);
 
     while (!check(tree, TOKEN_RIGHT_BRACE) && !check(tree, TOKEN_EOF)) {
@@ -623,7 +630,7 @@ static Expr* _match(ProgramTree* tree, Expr* last) {
 
     while (match(tree, TOKEN_PIPE)) {
         Expr* l = expression(tree, PREC_GENERIC_LOW);
-        
+
         glare(tree, TOKEN_ROCKET, "Expected '=>' between case and operation");
         Token delimiter = advance(tree);
         BinaryExpr* _case = Binary(tree, delimiter);
@@ -662,6 +669,53 @@ static Expr* function(ProgramTree* tree, Expr* last) {
     return (Expr*)fn;
 }
 
+static ObjString* genID(ProgramTree* tree, int i) {
+    int id_len = 3;
+    char* id_base = ALLOCATE(tree->compiler->vm, id_len + 1, char);
+
+    id_base[id_len] = '\0';
+    id_base[0] = '0';
+
+    id_base[1] = (char)('0' + (i % 16));
+    id_base[2] = (char)('0' + (i / 16));
+
+    // No need to manually free afterwards ; takeString frees or uses it
+    ObjString* str = takeString(tree->compiler->vm, id_base, id_len);
+
+    return str;
+}
+
+static Expr* partialApply(ProgramTree* tree, BinaryExpr* application, BlockExpr* args, Token operator, int partial) {
+    TernaryExpr* lmbd = Ternary(tree, (Token){TOKEN_COLON, NULL, 1, operator.line});
+
+    lmbd->left = (Expr*)Literal(tree, (Token){TOKEN_WILDCARD, NULL, 1, operator.line});
+
+    BlockExpr* lmbd_params = Block(tree, (Token){TOKEN_COLON, NULL, 1, operator.line});
+
+    for (int i = 0; i < partial; i++) {
+        ObjString* str = genID(tree, i);
+        writeExpr(lmbd_params, (Expr*)Literal(tree, (Token){TOKEN_IDENTIFIER, str->chars, 3, operator.line}));
+    }
+
+    lmbd->pivot = (Expr*)lmbd_params;
+
+    // for tail-calling
+    UnaryExpr* ret = Unary(tree, (Token){TOKEN_RETURN, "<-", 2, operator.line});
+    ret->operand = (Expr*)application;
+    lmbd->right = (Expr*)ret;
+
+    // replace '_' args with generated ids
+    int j = 0;
+    for (int i = 0; i < args->count; i++) {
+        Expr* param = args->subexprs[i];
+        if (param->type == EXPR_LITERAL && ((LiteralExpr*)param)->token.type == TOKEN_WILDCARD) {
+            args->subexprs[i] = lmbd_params->subexprs[j++];
+        }
+    }
+
+    return (Expr*)lmbd;
+}
+
 static Expr* apply(ProgramTree* tree, Expr* last) {
     Token operator = advance(tree);
     BinaryExpr* application = Binary(tree, operator);
@@ -678,7 +732,7 @@ static Expr* apply(ProgramTree* tree, Expr* last) {
             if (param->type == EXPR_LITERAL && ((LiteralExpr*)param)->token.type == TOKEN_WILDCARD) {
                 partial++;
             }
-            
+
             writeExpr(args, param);
             crossLine(tree);
         }
@@ -686,7 +740,7 @@ static Expr* apply(ProgramTree* tree, Expr* last) {
     } else {
         while (getRule(getToken(tree).type)->head != NULL) {
             Expr* param = expression(tree, PREC_GENERIC_LOW);
-            
+
             if (param->type == EXPR_LITERAL && ((LiteralExpr*)param)->token.type == TOKEN_WILDCARD) {
                 partial++;
             }
@@ -697,58 +751,16 @@ static Expr* apply(ProgramTree* tree, Expr* last) {
 
     application->left = last;
     application->right = (Expr*)args;
-    
+
     if (partial > 0) {
-        TernaryExpr* lmbd = Ternary(tree, (Token){TOKEN_COLON, NULL, 1, operator.line});
-
-        lmbd->left = (Expr*)Literal(tree, (Token){TOKEN_WILDCARD, NULL, 1, operator.line});
-        
-        BlockExpr* lmbd_params = Block(tree, (Token){TOKEN_COLON, NULL, 1, operator.line});
-
-        // Magic that makes Partial Application work  
-        // All this bs is to make sure that 
-        //      1. The identifiers are mutually unique
-        //      2. The identifiers cannot be accidentally assigned by the user
-        //      3. The identifiers can be collected after the program is done
-        for (int i = 0; i < partial; i++) {
-            int id_len = 4;
-            char* id_base = ALLOCATE(tree->compiler->vm, id_len + 1, char);
-            id_base[id_len] = '\0';
-            id_base[3] = (char)('0' + i);
-            id_base[2] = (char)('0' + (i >= 10 ? i % 10 : 0));
-            id_base[1] = (char)('0' + (i >= 100 ? i % 100 : 0));
-            id_base[0] = (char)('0' + (i >= 1000 ? i % 1000 : 0));
-
-            // No need to manually free afterwards ; takeString frees or uses it
-            ObjString* str = takeString(tree->compiler->vm, id_base, id_len); 
-
-            writeExpr(lmbd_params, (Expr*)Literal(tree, (Token){TOKEN_IDENTIFIER, str->chars, id_len, operator.line}));
-        }
-
-        lmbd->pivot = (Expr*)lmbd_params;
-
-        // for tail-calling
-        UnaryExpr* ret = Unary(tree, (Token){TOKEN_RETURN, "<-", 2, operator.line});
-        ret->operand = (Expr*)application;
-        lmbd->right = (Expr*)ret;
-
-        // replace '_' args with generated ids
-        int j = 0;
-        for (int i = 0; i < args->count; i++) {
-            Expr* param = args->subexprs[i];
-            if (param->type == EXPR_LITERAL && ((LiteralExpr*)param)->token.type == TOKEN_WILDCARD) {
-                args->subexprs[i] = lmbd_params->subexprs[j++];
-            }
-        }
-
-        return (Expr*)lmbd;
+        return partialApply(tree, application, args, operator, partial);
     }
 
     return (Expr*)application;
 }
 
 // For custom operators: (I assume) the reason languages like F# and Haskell have you place the
-// operator inside parentheses '()' is so that the parser finds it as a prefix expression with 
+// operator inside parentheses '()' is so that the parser finds it as a prefix expression with
 // no operands, allowing it to assume you're getting the operator literal. It serves the same
 // purpose as the "'" in Lisp, saying "Don't evaluate me, I'm a literal value right now!". Right
 // now I'm doing the same thing with '`', which causes it to parse the operator as a glyph.
@@ -777,22 +789,21 @@ static const ParseRule rules[] = {
     [TOKEN_EQUALS]              = { NULL,       rBinary,    PREC_ASSIGNMENT },
     [TOKEN_RECEIVE]             = { NULL,       rBinary,    PREC_ASSIGNMENT},
     [TOKEN_ROCKET]              = { NULL,       NULL,       PREC_NONE },
-    
+
     [TOKEN_GREATER]             = { NULL,       binary,     PREC_COMPARISON },
     [TOKEN_LESS]                = { NULL,       binary,     PREC_COMPARISON },
     [TOKEN_GREATER_EQUALS]      = { NULL,       binary,     PREC_COMPARISON },
     [TOKEN_LESS_EQUALS]         = { NULL,       binary,     PREC_COMPARISON },
     [TOKEN_BANG_EQUALS]         = { NULL,       binary,     PREC_EQUALITY },
     [TOKEN_EQUALS_EQUALS]       = { NULL,       binary,     PREC_EQUALITY },
-    
+
     [TOKEN_DOLLAR]              = { NULL,       apply,      PREC_CALL },
-    
+
     [TOKEN_QUESTION]            = { NULL,       postUnary,  PREC_UNARY },
     [TOKEN_BANG]                = { unary,      NULL,       PREC_UNARY },
     [TOKEN_PIPE]                = { NULL,       NULL,       PREC_NONE },
 
-    // remove this operator :: replace PREC_SUBCALL with PREC_GENERIC_HIGH for customs
-    [TOKEN_SPIGOT]              = { NULL,       binary,     PREC_SUBCALL }, 
+    [TOKEN_SPIGOT]              = { NULL,       binary,     PREC_GENERIC_HIGH },
 
     // Make special head+tail functions that analyse the operator to figure out the
     // precedence and associativity and don't throw errors for missing operands and such
@@ -824,7 +835,7 @@ static const ParseRule rules[] = {
     [TOKEN_IN]                  = { NULL,       binary,     PREC_COMPARISON },
     [TOKEN_RETURN]              = { unary,      NULL,       PREC_NONE },
 
-    // Control :: 48 - 51   := Nothing, should not be parsed 
+    // Control :: 48 - 51   := Nothing, should not be parsed
     [TOKEN_BREAK]               = { NULL,       NULL,       PREC_NONE },
     [TOKEN_SOF]                 = { NULL,       NULL,       PREC_NONE },
     [TOKEN_EOF]                 = { NULL,       NULL,       PREC_NONE },
@@ -847,7 +858,7 @@ void printExpression(Expr* expression) {
             printToken(&literal->token);
             break;
         }
-        
+
         case EXPR_UNARY:    {
             UnaryExpr* unary = (UnaryExpr*)expression;
             printToken(&unary->token);
@@ -855,7 +866,7 @@ void printExpression(Expr* expression) {
             printExpression(unary->operand);
             break;
         }
-        
+
         case EXPR_BINARY:   {
             BinaryExpr* binary = (BinaryExpr*)expression;
             printToken(&binary->token);
@@ -865,7 +876,7 @@ void printExpression(Expr* expression) {
             printExpression(binary->right);
             break;
         }
-        
+
         case EXPR_TERNARY:  {
             TernaryExpr* ternary = (TernaryExpr*)expression;
             printToken(&ternary->token);
@@ -877,7 +888,7 @@ void printExpression(Expr* expression) {
             printExpression(ternary->right);
             break;
         }
-        
+
         case EXPR_BLOCK:    {
             BlockExpr* block = (BlockExpr*)expression;
             printToken(&block->token);
@@ -913,7 +924,7 @@ void debugAST(const char* source) {
 
     for (;;) {
         Token token = scanToken(&tree.scanner);
-        
+
         writeToken(&tree, token);
 
         if (token.type == TOKEN_EOF) break;
@@ -928,13 +939,13 @@ void debugAST(const char* source) {
         printToken(&tree.tokens[i]);
     }
     #endif
-    
+
     advance(&tree);
 
     if (!match(&tree, TOKEN_BREAK)) {
         match(&tree, TOKEN_SEMICOLON);
     }
-    
+
     while (!check(&tree, TOKEN_EOF)) {
         writeExpr(tree.program, topLevel(&tree));
     }
@@ -963,7 +974,7 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
 
     for (;;) {
         Token token = scanToken(&tree->scanner);
-        
+
         writeToken(tree, token);
 
         if (token.type == TOKEN_EOF) break;
@@ -977,7 +988,7 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
     if (!match(tree, TOKEN_BREAK)) {
         match(tree, TOKEN_SEMICOLON);
     }
-    
+
     while (!check(tree, TOKEN_EOF)) {
         writeExpr(tree->program, topLevel(tree));
     }

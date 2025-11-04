@@ -85,7 +85,7 @@ static void compilerError(Compiler* compiler, const char* format, ...) {
     }
 
     fprintf(stderr, "Error: ");
-    
+
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
@@ -111,7 +111,7 @@ static void emitShort(Compiler* compiler, uint8_t op, uint16_t params, int line)
 
 static uint8_t makeConstant(Compiler* compiler, Value value) {
     int constant = addConstant(compiler->vm, currentChunk(compiler), value);
-    
+
     if (constant > UINT8_MAX) {
         compilerError(compiler, "Too many constants in %s, limit is %d, had %d", getName(compiler), UINT8_MAX, constant);
         return 0;
@@ -222,7 +222,7 @@ static int resolveLocal(Compiler* compiler, Token token) {
 
 static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
     int upvalueCount = compiler->upvalueCount;
-    
+
     // Check if the upvalue has already been tagged (indeces and isLocal are equal)
     // If so return its position
     for (int i = 0; i < upvalueCount; i++) {
@@ -234,17 +234,17 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
             return i;
         }
     }
-    
+
     // exit if too many upvalues
     if (upvalueCount == UINT8_COUNT) {
         compilerError(compiler, "Function has reached upvalue limit");
         return -1;
     }
-    
+
     #ifdef DEBUG_UPVALUE_INFO
     printf("New upvalue at index %d, islocal = %d\n", index, isLocal);
     #endif
-    
+
     // Add upvalue if it doesnt already exist
     // Return the new upvalue position
     compiler->upvalues[upvalueCount].isLocal = isLocal;
@@ -272,7 +272,7 @@ static int resolveUpvalue(Compiler* compiler, Token name) {
         #endif
         return added;
     }
-    
+
     return -1;
 }
 
@@ -297,7 +297,7 @@ ObjFunction* endCompiler(Compiler* compiler) {
     }
 
     ObjFunction* func = compiler->function;
-    
+
     #ifdef DEBUG_DISPLAY_PROGRAM
     disassembleChunk(&func->body, getName(compiler));
     #endif
@@ -340,7 +340,7 @@ static void character(Compiler* compiler, Token token) {
     }
     else {
         char value = ' ';
-        
+
         switch (*(token.start + 2)) {
         case 'n':   value = '\n'; break;
         case 't':   value = '\t'; break;
@@ -373,10 +373,10 @@ static void fString(Compiler* compiler, Token oldStr) {
             switch (ptr[1]) {
             case '\\': ptr++; newStr[newLen] = '\\'; break;
             case '"':  ptr++; newStr[newLen] = '"';  break;
-            case 'n':  ptr++; newStr[newLen] = '\n'; break; 
-            case 't':  ptr++; newStr[newLen] = '\t'; break; 
-            case 'b':  ptr++; newStr[newLen] = '\b'; break; 
-            case 'f':  ptr++; newStr[newLen] = '\f'; break; 
+            case 'n':  ptr++; newStr[newLen] = '\n'; break;
+            case 't':  ptr++; newStr[newLen] = '\t'; break;
+            case 'b':  ptr++; newStr[newLen] = '\b'; break;
+            case 'f':  ptr++; newStr[newLen] = '\f'; break;
             case '\n': ptr++; newLen--; break;
             default: break;
             } continue;
@@ -396,10 +396,10 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
     }
     else if (token.type == TOKEN_IDENTIFIER) {
         int spot;
-        
+
         if (compiler->localCount > 0 && (spot = resolveLocal(compiler, token)) != -1) {
             emitBytes(compiler, OP_GET_LOCAL, (uint8_t)spot, token.line);
-        } 
+        }
         else if ((spot = resolveUpvalue(compiler, token)) != -1) {
             emitBytes(compiler, OP_UPVALUE, (uint8_t)spot, token.line);
         }
@@ -413,10 +413,10 @@ static void compileLiteral(Compiler* compiler, LiteralExpr* literal) {
     else if (token.type == TOKEN_GLYPH) {
         Token glyph = (Token){token.type, token.start + 1, token.length - 1, token.line};
         int spot;
-        
+
         if (compiler->localCount > 0 && (spot = resolveLocal(compiler, glyph)) != -1) {
             emitBytes(compiler, OP_GET_LOCAL, (uint8_t)spot, glyph.line);
-        } 
+        }
         else if ((spot = resolveUpvalue(compiler, glyph)) != -1) {
             emitBytes(compiler, OP_UPVALUE, (uint8_t)spot, glyph.line);
         }
@@ -448,12 +448,12 @@ static void optimiseReturn(Compiler* compiler, UnaryExpr* unary) {
     Token token = getToken(compiler, (Expr*)unary);
     Expr* operand = unary->operand;
 
-    if (operand->type == EXPR_BINARY && getToken(compiler, operand).type == TOKEN_LEFT_PAREN || getToken(compiler, operand).type == TOKEN_DOLLAR) {
-        compileExpr(compiler, unary->operand);  
+    if (operand->type == EXPR_BINARY && (getToken(compiler, operand).type == TOKEN_LEFT_PAREN || getToken(compiler, operand).type == TOKEN_DOLLAR)) {
+        compileExpr(compiler, unary->operand);
         currentChunk(compiler)->code[currentChunk(compiler)->count - 2] = (uint8_t)OP_TAIL_CALL;
     }
     else {
-        compileExpr(compiler, unary->operand);  
+        compileExpr(compiler, unary->operand);
         emitByte(compiler, OP_RETURN, token.line);
     }
 }
@@ -474,7 +474,7 @@ static void optimiseNegation(Compiler* compiler, UnaryExpr* unary) {
         double value = strtod(arg.start, NULL);
         size_t integral = (size_t)value;
         long double fractional = value - integral;
-    
+
         if (fractional == 0 && integral <= UINT16_MAX) {
             emitShort(compiler, OP_FLOAT_N, integral, arg.line);
         }
@@ -483,13 +483,13 @@ static void optimiseNegation(Compiler* compiler, UnaryExpr* unary) {
         }
     }
     else {
-        compileExpr(compiler, unary->operand);  
+        compileExpr(compiler, unary->operand);
         emitByte(compiler, OP_NEGATE, arg.line);
     }
 }
 
 static void plainUnary(Compiler* compiler, UnaryExpr* unary, OpCode op) {
-    compileExpr(compiler, unary->operand);  
+    compileExpr(compiler, unary->operand);
     emitByte(compiler, op, getToken(compiler, (Expr*)unary).line);
 }
 
@@ -525,7 +525,7 @@ static void reverseBinary(Compiler* compiler, BinaryExpr* binary, OpCode op) {
 static void _and(Compiler* compiler, BinaryExpr* binary) {
     compileExpr(compiler, binary->left);
     int falseyJmp = emitJump(compiler, OP_JUMP_IF_FALSE, getToken(compiler, binary->left).line);
-    emitByte(compiler, OP_POP, getToken(compiler, binary->left).line); // remove condition 
+    emitByte(compiler, OP_POP, getToken(compiler, binary->left).line); // remove condition
 
     compileExpr(compiler, binary->right);
     patchJump(compiler, falseyJmp);
@@ -534,11 +534,11 @@ static void _and(Compiler* compiler, BinaryExpr* binary) {
 static void _or(Compiler* compiler, BinaryExpr* binary) {
     compileExpr(compiler, binary->left);
     int truthyJmp = emitJump(compiler, OP_JUMP_IF_TRUE, getToken(compiler, binary->left).line);
-    emitByte(compiler, OP_POP, getToken(compiler, binary->left).line); // remove condition 
+    emitByte(compiler, OP_POP, getToken(compiler, binary->left).line); // remove condition
 
     compileExpr(compiler, binary->right);
     patchJump(compiler, truthyJmp);
-} 
+}
 
 // Refactor to only copy string once
 // Leave 'ObjString* name = NULL;' in the fn scope so the other parts can
@@ -549,9 +549,9 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
     ObjString* name = NULL;
 
     // Scan identifier;
-    if (nomme.type == TOKEN_IDENTIFIER) 
+    if (nomme.type == TOKEN_IDENTIFIER)
         name = copyString(compiler->vm, nomme.start, nomme.length);
-    else if (nomme.type == TOKEN_GLYPH) 
+    else if (nomme.type == TOKEN_GLYPH)
         name = copyString(compiler->vm, nomme.start + 1, nomme.length - 1);
     else {
         compilerError(compiler, "Expected lvalue, got %.*s", nomme.length, nomme.start);
@@ -559,9 +559,9 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
     }
 
     // Create binding
-    if (compiler->scopeDepth == 0) 
+    if (compiler->scopeDepth == 0)
         spot = makeConstant(compiler, OBJ_VAL(name));
-    else 
+    else
         addLocal(compiler, name);
 
     // Handle rvalue
@@ -703,36 +703,13 @@ static void apply(Compiler* compiler, BinaryExpr* binary) {
     compileExpr(compiler, binary->left);
 
     BlockExpr* args = (BlockExpr*)binary->right;
-    
+
     for (int i = 0; i < args->count; i++) {
         compileExpr(compiler, args->subexprs[i]);
     }
 
     emitBytes(compiler, OP_CALL, (uint8_t)args->count, getToken(compiler, (Expr*)binary).line);
 }
-
-/*  +----
- *  | prev
- *  +--------
- *  | Test Match A |
- *  +--------------^+
- *  | **DISTANCEB** |
- *  +---------------+
- *   
- *  <Case Expression>
- *   
- *  +-------------+
- *  | Jump To End |
- *  +-------------+
- *  | DIST_TO_END |
- *  +-------------^+
- *  | Test Match B |
- *  +--------------^+
- *  | **DISTANCEC** |
- *  +-----------
- *  | cont
- *  +----
- */
 
 static void compileMatch(Compiler* compiler, BinaryExpr* binary) {
     int endings[UINT8_MAX];
@@ -749,14 +726,14 @@ static void compileMatch(Compiler* compiler, BinaryExpr* binary) {
 
     for (int i = 0; i < cases->count; i++) {
         BinaryExpr* _case = (BinaryExpr*)cases->subexprs[i];
-        
+
         if (getToken(compiler, _case->left).type == TOKEN_WILDCARD) {
             emitByte(compiler, OP_DUPE_TOP, getToken(compiler, _case->left).line);
         }
         else {
             compileExpr(compiler, _case->left);
         }
-        
+
         int skipCase = emitJump(compiler, OP_TEST_CASE, getToken(compiler, _case->left).line);
 
         compileExpr(compiler, _case->right);
@@ -860,7 +837,7 @@ static void optimiseConcatenation(Compiler* compiler, BinaryExpr* binary) {
         memcpy(heapChars, a.start + 1, a.length - 2);
         memcpy(heapChars + (a.length - 2), b.start + 1, b.length - 2);
         heapChars[new_length] = '\0';
-    
+
         ObjString* c = takeString(compiler->vm, heapChars, new_length);
 
         emitConstant(compiler, OBJ_VAL(c), getToken(compiler, (Expr*)binary).line);
@@ -930,17 +907,17 @@ static void compileBinary(Compiler* compiler, BinaryExpr* binary) {
         case TOKEN_DOT:             plainBinary(compiler, binary, OP_COMPOSE); return;
         case TOKEN_DOT_DOT:         optimiseConcatenation(compiler, binary); return;
         case TOKEN_COMMA:           plainBinary(compiler, binary, OP_CONSTRUCT); return;
-        
+
         case TOKEN_PLUS:            optimiseArithmetic(compiler, binary, OP_ADD); return;
         case TOKEN_MINUS:           optimiseArithmetic(compiler, binary, OP_SUBTRACT); return;
         case TOKEN_STAR:            optimiseArithmetic(compiler, binary, OP_MULTIPLY); return;
         case TOKEN_SLASH:           optimiseArithmetic(compiler, binary, OP_DIVIDE); return;
         case TOKEN_PERCENT:         optimiseArithmetic(compiler, binary, OP_MODULO); return;
         case TOKEN_UCARET:          optimiseArithmetic(compiler, binary, OP_EXPONENT); return;
-        
+
         case TOKEN_EQUALS:          assignment(compiler, binary); return;
         case TOKEN_RECEIVE:         plainBinary(compiler, binary, OP_RECEIVE); return;
-        
+
         case TOKEN_GREATER:         plainBinary(compiler, binary, OP_DIFF); return;
         case TOKEN_LESS:            reverseBinary(compiler, binary, OP_DIFF); return;
         case TOKEN_GREATER_EQUALS:  plainBinary(compiler, binary, OP_DIFFEQ); return;
@@ -975,7 +952,7 @@ static void compileIf(Compiler* compiler, TernaryExpr* ternary) {
 
     // then branch
     compileExpr(compiler, ternary->left);
-    
+
     int skipElse = emitJump(compiler, OP_JUMP, getToken(compiler, ternary->right).line);
     patchJump(compiler, skipThen);
     emitByte(compiler, OP_POP, getToken(compiler, ternary->right).line);
@@ -1002,7 +979,7 @@ static void openBlock(Compiler* compiler, BlockExpr* block)  {
         }
     }
 
-    
+
     if (block->count != 0) {
         Expr* last = block->subexprs[block->count - 1];
 
@@ -1015,14 +992,14 @@ static void openBlock(Compiler* compiler, BlockExpr* block)  {
 }
 
 static bool isFnName(Compiler* compiler, Expr* expr) {
-    return  isTType(compiler, expr, TOKEN_IDENTIFIER) || 
-            isTType(compiler, expr, TOKEN_WILDCARD)   || 
+    return  isTType(compiler, expr, TOKEN_IDENTIFIER) ||
+            isTType(compiler, expr, TOKEN_WILDCARD)   ||
             isTType(compiler, expr, TOKEN_GLYPH);
 }
 
 static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     #ifdef DEBUG_COMPILER_PROGRESS
-    printf("Starting fn compilation\n");    
+    printf("Starting fn compilation\n");
     printf("fn name is ");
     Token fgjho = getToken(enclosing, ternary->left);
     printToken(&fgjho);
@@ -1049,13 +1026,13 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
                 ? copyString(enclosing->vm, leftHand->token.start, leftHand->token.length)
                 : copyString(enclosing->vm, leftHand->token.start + 1, leftHand->token.length - 1);
         type = FUN_FUNCTION;
-        // necessary for recursive functions 
+        // necessary for recursive functions
         if (enclosing->scopeDepth > 0) {
             addLocal(enclosing, name);
-            fixLocal(enclosing, name);    
+            fixLocal(enclosing, name);
         }
     }
-    
+
     initCompiler(&compiler, enclosing->vm, type, name);
     compiler.tree = enclosing->tree;
     beginScope(&compiler);
@@ -1103,11 +1080,6 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
     func->arity = args->count;
     emitConstant(enclosing, OBJ_VAL(func), getToken(enclosing, (Expr*)ternary).line);
 
-    // TODO: Add support for upvalues from greater scopes
-    // When creating a closure, the surrounding function will have to become a closure and
-    // reach into its parent scope for upvalues that the end-closure is requesting, and 
-    // carry them for it into the runtime, if there are any.
-    // Push unresolved upvalues to a list in the enclosing function
     if (compiler.upvalueCount > 0) {
         int line = getToken(enclosing, (Expr*)ternary).line;
 
@@ -1131,13 +1103,13 @@ static void compileFunction(Compiler* enclosing, TernaryExpr* ternary) {
 
 static void compileTernary(Compiler* compiler, TernaryExpr* ternary) {
     Token token = ternary->token;
-    
+
     switch (token.type) {
         case TOKEN_IF:      compileIf(compiler, ternary); return;
         case TOKEN_COLON:   compileFunction(compiler, ternary); return;
         default: break;
     }
-    
+
     printToken(&token);
 
     compilerError(compiler, "Invalid expression at %.*s", token.length, token.start);
@@ -1152,14 +1124,14 @@ static void codeBlock(Compiler* compiler, BlockExpr* block)  {
 
         compileExpr(compiler, next);
 
-        if (getToken(compiler, next).type != TOKEN_EQUALS && 
+        if (getToken(compiler, next).type != TOKEN_EQUALS &&
             (getToken(compiler, next).type != TOKEN_COLON && getToken(compiler, ((TernaryExpr*)next)->left).type != TOKEN_WILDCARD)) {
             emitByte(compiler, OP_POP, getLastLine(compiler));
         }
     }
 
     Expr* last = block->subexprs[block->count - 1];
-    
+
     if (block->count != 0) {
         compileExpr(compiler, last);
 
@@ -1214,31 +1186,31 @@ static void compileExpr(Compiler* compiler, Expr* expression) {
             compileLiteral(compiler, literal);
             break;
         }
-        
+
         case EXPR_UNARY:    {
             UnaryExpr* unary = (UnaryExpr*)expression;
             compileUnary(compiler, unary);
             break;
         }
-        
+
         case EXPR_BINARY:   {
             BinaryExpr* binary = (BinaryExpr*)expression;
             compileBinary(compiler, binary);
             break;
         }
-        
+
         case EXPR_TERNARY:  {
             TernaryExpr* ternary = (TernaryExpr*)expression;
             compileTernary(compiler, ternary);
             break;
         }
-        
+
         case EXPR_BLOCK:    {
             BlockExpr* block = (BlockExpr*)expression;
             compileBlock(compiler, block);
             break;
         }
-        default: 
+        default:
             break;
     }
 }
@@ -1246,7 +1218,7 @@ static void compileExpr(Compiler* compiler, Expr* expression) {
 ObjFunction* compile(const char* source, VM* vm) {
     Compiler compiler;
     initCompiler(&compiler, vm, FUN_SCRIPT, NULL);
-    
+
     ProgramTree tree;
     createTree(&compiler, &tree, source);
 
@@ -1264,11 +1236,11 @@ ObjFunction* compile(const char* source, VM* vm) {
 
     for (size_t i = 0; i < compiler.tree->program->count - 1; ++i) {
         Expr* next = compiler.tree->program->subexprs[i];
-        
+
         compileExpr(&compiler, next);
-        
+
         emitByte(&compiler, OP_POP, getLastLine(&compiler));
-        
+
         #ifdef DEBUG_COMPILER_PROGRESS
         printf(compiler.tree->hadError ? "Compiled with errors\n" : "Compiled successfully\n");
         #endif
@@ -1285,20 +1257,3 @@ ObjFunction* compile(const char* source, VM* vm) {
     freeTree(&tree);
     return endCompiler(&compiler);
 }
-
-/*
-// Consider doing this
-// might end up being annoying, but it causes the gc
-// to nuke every single local variable identifier at
-// the very start of execution, which would be a BIG
-// lag spike (at least it'd be around the start ig?)
-void markCompiler(VM* vm) {
-    Compiler* compiler = vm->compiler;
-    while (compiler != NULL) {
-        markObject(vm, (Obj*)compiler->function);
-        compiler = compiler->enclosing;
-    }
-}
-*/
-
-//TODO: make functions properly clean up everything (free program tree, probably free compiler, etc.)

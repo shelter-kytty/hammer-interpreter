@@ -25,7 +25,7 @@ void runtimeError(VM* vm, const char* format, ...) {
     vfprintf(stderr, format, args);
     va_end(args);
     fputs("\n", stderr);
-    
+
     for (int i = vm->frameCount - 1; i >= 0; i--) {
         CallFrame* frame = &vm->frames[i];
         ObjFunction* function = frame->function;
@@ -52,7 +52,7 @@ void runtimeError(VM* vm, const char* format, ...) {
     printf("\nstrings:\n");
     printTable(&vm->strings);
     #endif
-    
+
     #ifdef DEBUG_DISPLAY_TABLES
     printf("\nglobals:\n");
     printTable(&vm->globals);
@@ -93,10 +93,10 @@ static bool callFromC(VM* vm, Value caller, uint8_t argCount) {
     if (!callValue(vm, caller, argCount)) {
         return false;
     }
-    
+
     if (!IS_NATIVE(caller)) {
         currentFrame(vm)->isCHOF = true;
-        
+
         if (run(vm) == INTERPRET_RUNTIME_ERROR) {
             return false;
         }
@@ -179,7 +179,7 @@ bool printfNative(VM* vm, int argc, Value* argv) {
                 runtimeError(vm, "printf$ : Expected '}' in format");
                 return false;
             }
-            
+
             format++;
         }
         else {
@@ -222,7 +222,7 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
                 runtimeError(vm, "printfn$ : Expected '}' in format");
                 return false;
             }
-            
+
             format++;
         }
         else {
@@ -240,7 +240,7 @@ bool printfnNative(VM* vm, int argc, Value* argv) {
 
 bool typeOfNative(VM* vm, int argc, Value* argv) {
     returnNative(vm, argc, INT_VAL(
-        IS_OBJ(argv[0]) 
+        IS_OBJ(argv[0])
         ? (long long)(OBJ_TYPE(argv[0]) + VAL_OBJ)
         : (long long)(argv[0].type)
         )
@@ -265,7 +265,7 @@ bool addOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
     Value c;
-    
+
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
         runtimeError(vm, "ADD : Cannot perform op on %s and %s", getValName(a), getValName(b));
         return false;
@@ -296,7 +296,7 @@ bool subOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
     Value c;
-    
+
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
         runtimeError(vm, "SUB : Cannot perform op on %s and %s", getValName(a), getValName(b));
         return false;
@@ -327,7 +327,7 @@ bool mulOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
     Value c;
-    
+
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
         runtimeError(vm, "MUL : Cannot perform op on %s and %s", getValName(a), getValName(b));
         return false;
@@ -358,7 +358,7 @@ bool divOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
     Value c;
-    
+
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
         runtimeError(vm, "DIV : Cannot perform op on %s and %s", getValName(a), getValName(b));
         return false;
@@ -389,11 +389,11 @@ bool modOperator(VM* vm, int argc, Value* argv) {
     Value a = argv[0];
     Value b = argv[1];
     Value c;
-    
+
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
         runtimeError(vm, "POW : Cannot perform op on %s and %s", getValName(a), getValName(b));
-        return false;                  
-    }                                                    
+        return false;
+    }
 
     if (TYPES_EQUAL(a, b)) {
         if (IS_INT(a)) {
@@ -401,15 +401,15 @@ bool modOperator(VM* vm, int argc, Value* argv) {
         }
         else {
             c = FLOAT_VAL(fmod(AS_FLOAT(a), AS_FLOAT(b)));
-        }                      
-    }                          
-    else {                     
-        if (IS_INT(a)) {       
-            c = FLOAT_VAL(fmod((double)AS_INT(a), AS_FLOAT(b)));  
-        }                      
-        else {                 
-            c = FLOAT_VAL(fmod(AS_FLOAT(a), (double)AS_INT(b)));  
-        }              
+        }
+    }
+    else {
+        if (IS_INT(a)) {
+            c = FLOAT_VAL(fmod((double)AS_INT(a), AS_FLOAT(b)));
+        }
+        else {
+            c = FLOAT_VAL(fmod(AS_FLOAT(a), (double)AS_INT(b)));
+        }
     }
 
     returnNative(vm, argc, c);
@@ -419,12 +419,12 @@ bool modOperator(VM* vm, int argc, Value* argv) {
 bool powOperator(VM* vm, int argc, Value* argv) {
     Value b = argv[0];
     Value a = argv[1];
-    Value c;                        
-    
+    Value c;
+
     if (!IS_ARITH(a) || !IS_ARITH(b)) {
         runtimeError(vm, "MOD : Cannot perform op on %s and %s", getValName(a), getValName(b));
-        return false;                  
-    }                                                    
+        return false;
+    }
 
     if (TYPES_EQUAL(a, b)) {
         if (IS_INT(a)) {
@@ -434,13 +434,13 @@ bool powOperator(VM* vm, int argc, Value* argv) {
             c = FLOAT_VAL(powf(AS_FLOAT(a), AS_FLOAT(b)));
         }
     }
-    else {                     
-        if (IS_INT(a)) {       
-            c = FLOAT_VAL(powf((double)AS_INT(a), AS_FLOAT(b)));  
-        }                      
-        else {                 
-            c = FLOAT_VAL(powf(AS_FLOAT(a), (double)AS_INT(b)));  
-        }              
+    else {
+        if (IS_INT(a)) {
+            c = FLOAT_VAL(powf((double)AS_INT(a), AS_FLOAT(b)));
+        }
+        else {
+            c = FLOAT_VAL(powf(AS_FLOAT(a), (double)AS_INT(b)));
+        }
     }
 
     returnNative(vm, argc, c);
@@ -495,21 +495,21 @@ bool mapNative(VM* vm, int argc, Value* argv) {
 
     for (int i = 0; i < ARRAY(l).count; ++i) {
         push(vm, f);
-        
+
         Value x = ARRAY(l).values[i];
         push(vm, x);
-        
+
         if (!callFromC(vm, f, 1)) {
             return false;
         }
-        
+
         Value y = peek(vm, 0);
 
         writeValueArray(vm, &ARRAY(m), y);
-        
+
         pop(vm);
     }
-    
+
     returnNative(vm, argc, pop(vm));
 
     return true;
@@ -541,19 +541,19 @@ bool filterNative(VM* vm, int argc, Value* argv) {
 
     for (int i = 0; i < ARRAY(l).count; ++i) {
         push(vm, f);
-        
+
         Value x = ARRAY(l).values[i];
         push(vm, x);
 
         if (!callFromC(vm, f, 1)) {
             return false;
         }
-        
+
         if (isTruthy(pop(vm))) {
             writeValueArray(vm, &ARRAY(m), x);
         }
     }
-    
+
     returnNative(vm, argc, pop(vm));
 
     return true;
@@ -588,7 +588,7 @@ bool zipNative(VM* vm, int argc, Value* argv) {
 
     for (int i = 0; i < min; ++i) {
         push(vm, f);
-        
+
         Value x = ARRAY(l1).values[i];
         push(vm, x);
 
@@ -598,14 +598,14 @@ bool zipNative(VM* vm, int argc, Value* argv) {
         if (!callFromC(vm, f, 2)) {
             return false;
         }
-        
+
         Value a = peek(vm, 0);
 
         writeValueArray(vm, &ARRAY(z), a);
-        
+
         pop(vm);
     }
-    
+
     returnNative(vm, argc, pop(vm));
 
     return true;
@@ -626,7 +626,7 @@ static ObjList* reverseList(VM* vm, ObjList* in) {
     return out;
 }
 
-static ObjString* reverseString(VM* vm, ObjString* in) {    
+static ObjString* reverseString(VM* vm, ObjString* in) {
     int length = in->length;
     char* heapChars = ALLOCATE(vm, length + 1, char);
 
@@ -676,7 +676,7 @@ bool foldlNative(VM* vm, int argc, Value* argv) {
 
     push(vm, ARRAY(l).values[0]);
     push(vm, ARRAY(l).values[1]);
-    
+
     #ifdef DEBUG_DISPLAY_STACK
     for (Value* ptr = vm->stack; ptr < vm->stackTop; ptr++) {
         printValue(*ptr);
@@ -684,7 +684,7 @@ bool foldlNative(VM* vm, int argc, Value* argv) {
     }
     printf("\n");
     #endif
-    
+
     if (!callFromC(vm, f, 2)) {
         return false;
     }
@@ -693,18 +693,18 @@ bool foldlNative(VM* vm, int argc, Value* argv) {
 
     for (int i = 2; i < ARRAY(l).count; ++i) {
         push(vm, f);
-        
+
         Value y = ARRAY(l).values[i];
         push(vm, x);
         push(vm, y);
-        
+
         if (!callFromC(vm, f, 2)) {
             return false;
         }
-        
+
         x = pop(vm);
     }
-    
+
     returnNative(vm, argc, x);
 
     return true;
@@ -743,7 +743,7 @@ bool foldrNative(VM* vm, int argc, Value* argv) {
 
     for (int i = ARRAY(l).count - 3; i >= 0; --i) {
         push(vm, f);
-        
+
         Value y = ARRAY(l).values[i];
         push(vm, y);
         push(vm, x);
@@ -751,10 +751,10 @@ bool foldrNative(VM* vm, int argc, Value* argv) {
         if (!callFromC(vm, f, 2)) {
             return false;
         }
-        
+
         x = pop(vm);
     }
-    
+
     returnNative(vm, argc, x);
 
     return true;
@@ -773,17 +773,17 @@ void initVM(VM* vm) {
     vm->frameCount = 0;
     vm->compiler = NULL;
     vm->stackTop = vm->stack;
-    
+
     vm->objects = NULL;
     vm->isActive = false;
     vm->greyStart = NULL;
     vm->greyEnd = NULL;
     vm->bytesAllocated = 0;
     vm->nextGC = 500000;
-    
+
     initTable(&vm->strings);
     initTable(&vm->globals);
-    
+
     // stdlib
     defineNative(vm, "clock", clockNative, 0);
     defineNative(vm, "exit", exitNative, 1);
@@ -801,8 +801,6 @@ void initVM(VM* vm) {
     defineNative(vm, "foldr", foldrNative, 2);
     defineNative(vm, "apply", applyNative, -2);
 
-    // TODO: Implement these as actual addition, subtraction,
-    // cons, etc. operators to make the glyph system work better
     defineNative(vm, "+", addOperator, 2);
     defineNative(vm, "-", subOperator, 2);
     defineNative(vm, "*", mulOperator, 2);
@@ -850,7 +848,7 @@ static bool isTruthy(Value value) {
         case VAL_OBJ: {
             switch (OBJ_TYPE(value)) {
             case OBJ_STRING: return AS_STRING(value)->length > 0;
-            case OBJ_CELL:   
+            case OBJ_CELL:
                 #ifdef OPTION_RECURSIVE_TRUTHINESS
                 return isTruthy(CAR(value)) || isTruthy(CDR(value));
                 #endif
@@ -975,7 +973,7 @@ static bool callClosure(VM* vm, ObjClosure* closure, uint8_t argCount) {
 
     vm->frameCount++;
     CallFrame* frame = currentFrame(vm);
-    
+
     frame->function = closure->function;
     frame->ip       = closure->function->body.code;
     frame->slots    = vm->stackTop - argCount;
@@ -1001,8 +999,6 @@ static bool callValue(VM* vm, Value caller, uint8_t argCount) {
     }
 }
 
-// TODO: Add support for upvalues from greater scopes
-// Might need to change this for that
 static bool retrieveUpvalue(VM* vm, uint8_t depth, Value* returnal) {
     ObjClosure* closure = currentFrame(vm)->closure;
 
@@ -1059,7 +1055,7 @@ static bool compareTrees(VM* vm, Value a, Value b) {
 static void subscriptList(VM* vm, ObjList* list, long long index, uint8_t offset) {
     pop(vm);
     pop(vm);
-    
+
     if (index > list->array.count - (1 - offset) || index < -(list->array.count - offset)) {
         push(vm, UNIT_VAL);
     }
@@ -1200,10 +1196,10 @@ InterpretResult run(VM* vm) {
 
     for (;;) {
         #ifdef DEBUG_DISPLAY_INSTRUCTIONS
-        disassembleInstruction(&currentFrame(vm)->function->body, 
+        disassembleInstruction(&currentFrame(vm)->function->body,
             currentFrame(vm)->ip - currentFrame(vm)->function->body.code);
         #endif
-        
+
         uint8_t instr = READ_BYTE(vm);
 
         switch(instr) {
@@ -1220,16 +1216,16 @@ InterpretResult run(VM* vm) {
 
                     push(vm, result);
 
-                    if (currentFrame(vm)->isCHOF) { 
-                        vm->frameCount--; 
-                        return INTERPRET_OK; 
+                    if (currentFrame(vm)->isCHOF) {
+                        vm->frameCount--;
+                        return INTERPRET_OK;
                     } // smthn like that
-                    
+
                     vm->frameCount--;
 
                     break;
                 }
-                
+
 
                 #ifdef DEBUG_DISPLAY_INSTRUCTIONS
                 printf("\n");
@@ -1243,7 +1239,7 @@ InterpretResult run(VM* vm) {
                 uint8_t count = READ_BYTE(vm);
                 bool isCHigherOrderFunction = currentFrame(vm)->isCHOF;
                 bool isNative = IS_NATIVE(peek(vm, count));
-                
+
                 popAndPushInSequence(vm, count);
 
                 if (!callValue(vm, peek(vm, count), count)) {
@@ -1296,19 +1292,19 @@ InterpretResult run(VM* vm) {
                 uint8_t slot = READ_BYTE(vm);
                 push(vm, READ_CONST(vm, slot));
                 break;
-            }     
+            }
             case OP_TRUE: {
                 push(vm, BOOL_VAL(true));
                 break;
-            }      
+            }
             case OP_FALSE: {
                 push(vm, BOOL_VAL(false));
                 break;
-            }     
+            }
             case OP_UNIT: {
                 push(vm, UNIT_VAL);
                 break;
-            }      
+            }
             case OP_NOT: {
                 push(vm, BOOL_VAL(!isTruthy(pop(vm))));
                 break;
@@ -1333,123 +1329,123 @@ InterpretResult run(VM* vm) {
                 }
 
                 break;
-            }    
-            case OP_ADD:        BINARY_OP(vm, + ); break;       
+            }
+            case OP_ADD:        BINARY_OP(vm, + ); break;
             case OP_SUBTRACT:   BINARY_OP(vm, - ); break;
             case OP_MULTIPLY:   BINARY_OP(vm, * ); break;
             case OP_DIVIDE:     BINARY_OP(vm, / ); break;
             case OP_MODULO: {
-                Value b = pop(vm);                                                   
-                Value a = pop(vm);                                                   
-                
+                Value b = pop(vm);
+                Value a = pop(vm);
+
                 if (!IS_ARITH(a) || !IS_ARITH(b)) {
                     runtimeError(vm, "MOD : Cannot perform op on %s and %s", getValName(a), getValName(b));
-                    return INTERPRET_RUNTIME_ERROR;                  
-                }                                                    
+                    return INTERPRET_RUNTIME_ERROR;
+                }
 
-                if (TYPES_EQUAL(a, b)) {    
-                    if (IS_INT(a)) {        
-                        push(vm, INT_VAL(fmodl(AS_INT(a), AS_INT(b))));    
-                    }                       
-                    else {                  
+                if (TYPES_EQUAL(a, b)) {
+                    if (IS_INT(a)) {
+                        push(vm, INT_VAL(fmodl(AS_INT(a), AS_INT(b))));
+                    }
+                    else {
                         push(vm, FLOAT_VAL(fmod(AS_FLOAT(a), AS_FLOAT(b))));
-                    }                      
-                }                          
-                else {                     
-                    if (IS_INT(a)) {       
-                        push(vm, FLOAT_VAL(fmod((double)AS_INT(a), AS_FLOAT(b))));  
-                    }                      
-                    else {                 
-                        push(vm, FLOAT_VAL(fmod(AS_FLOAT(a), (double)AS_INT(b))));  
-                    }              
+                    }
+                }
+                else {
+                    if (IS_INT(a)) {
+                        push(vm, FLOAT_VAL(fmod((double)AS_INT(a), AS_FLOAT(b))));
+                    }
+                    else {
+                        push(vm, FLOAT_VAL(fmod(AS_FLOAT(a), (double)AS_INT(b))));
+                    }
                 }
 
                 break;
-            }    
+            }
             case OP_EXPONENT: {
-                Value b = pop(vm);                                                   
-                Value a = pop(vm);                                                   
-                
+                Value b = pop(vm);
+                Value a = pop(vm);
+
                 if (!IS_ARITH(a) || !IS_ARITH(b)) {
                     runtimeError(vm, "POW : Cannot perform op on %s and %s", getValName(a), getValName(b));
-                    return INTERPRET_RUNTIME_ERROR;                  
-                }                                                    
+                    return INTERPRET_RUNTIME_ERROR;
+                }
 
-                if (TYPES_EQUAL(a, b)) {    
-                    if (IS_INT(a)) {        
-                        push(vm, INT_VAL(powl(AS_INT(a), AS_INT(b))));    
-                    }                       
-                    else {                  
+                if (TYPES_EQUAL(a, b)) {
+                    if (IS_INT(a)) {
+                        push(vm, INT_VAL(powl(AS_INT(a), AS_INT(b))));
+                    }
+                    else {
                         push(vm, FLOAT_VAL(powf(AS_FLOAT(a), AS_FLOAT(b))));
-                    }                      
-                }                          
-                else {                     
-                    if (IS_INT(a)) {       
-                        push(vm, FLOAT_VAL(powf((double)AS_INT(a), AS_FLOAT(b))));  
-                    }                      
-                    else {                 
-                        push(vm, FLOAT_VAL(powf(AS_FLOAT(a), (double)AS_INT(b))));  
-                    }              
+                    }
+                }
+                else {
+                    if (IS_INT(a)) {
+                        push(vm, FLOAT_VAL(powf((double)AS_INT(a), AS_FLOAT(b))));
+                    }
+                    else {
+                        push(vm, FLOAT_VAL(powf(AS_FLOAT(a), (double)AS_INT(b))));
+                    }
                 }
 
                 break;
-            }  
+            }
             case OP_DIFF: {
-                Value b = pop(vm);                                                   
-                Value a = pop(vm);                                                   
-                
+                Value b = pop(vm);
+                Value a = pop(vm);
+
                 if (!IS_ARITH(a) || !IS_ARITH(b)) {
                     runtimeError(vm, "DIFF : Cannot perform op on %s and %s", getValName(a), getValName(b));
-                    return INTERPRET_RUNTIME_ERROR;                  
-                }                                                    
+                    return INTERPRET_RUNTIME_ERROR;
+                }
 
-                if (TYPES_EQUAL(a, b)) {    
-                    if (IS_INT(a)) {        
-                        push(vm, BOOL_VAL(AS_INT(a) > AS_INT(b)));    
-                    }                       
-                    else {                  
+                if (TYPES_EQUAL(a, b)) {
+                    if (IS_INT(a)) {
+                        push(vm, BOOL_VAL(AS_INT(a) > AS_INT(b)));
+                    }
+                    else {
                         push(vm, BOOL_VAL(AS_FLOAT(a) > AS_FLOAT(b)));
-                    }                      
-                }                          
-                else {                     
-                    if (IS_INT(a)) {       
-                        push(vm, BOOL_VAL(AS_INT(a) > AS_FLOAT(b)));  
-                    }                      
-                    else {                 
-                        push(vm, BOOL_VAL(AS_FLOAT(a) > AS_INT(b)));  
-                    }              
-                }                  
+                    }
+                }
+                else {
+                    if (IS_INT(a)) {
+                        push(vm, BOOL_VAL(AS_INT(a) > AS_FLOAT(b)));
+                    }
+                    else {
+                        push(vm, BOOL_VAL(AS_FLOAT(a) > AS_INT(b)));
+                    }
+                }
 
                 break;
-            }      
+            }
             case OP_DIFFEQ: {
-                Value b = pop(vm);                                                   
-                Value a = pop(vm);                                                   
+                Value b = pop(vm);
+                Value a = pop(vm);
 
-                if (!IS_ARITH(a) || !IS_ARITH(b)) {               
+                if (!IS_ARITH(a) || !IS_ARITH(b)) {
                     runtimeError(vm, "DIFFEQ : Cannot perform op on %s and %s", getValName(a), getValName(b));
-                    return INTERPRET_RUNTIME_ERROR;                                 
-                }                                                                   
+                    return INTERPRET_RUNTIME_ERROR;
+                }
 
-                if (TYPES_EQUAL(a, b)) {                                            
-                    if (IS_INT(a)) {                                                
-                        push(vm, BOOL_VAL(AS_INT(a) >= AS_INT(b)));                   
-                    }                                                               
-                    else {                                                          
-                        push(vm, BOOL_VAL(AS_FLOAT(a) >= AS_FLOAT(b)));             
-                    }                                                               
-                }                                                                   
-                else {                                                              
-                    if (IS_INT(a)) {                                                
-                        push(vm, BOOL_VAL(AS_INT(a) >= AS_FLOAT(b)));               
-                    }                                                               
-                    else {                                                          
-                        push(vm, BOOL_VAL(AS_FLOAT(a) >= AS_INT(b)));               
-                    }                                                               
-                }                                                                   
+                if (TYPES_EQUAL(a, b)) {
+                    if (IS_INT(a)) {
+                        push(vm, BOOL_VAL(AS_INT(a) >= AS_INT(b)));
+                    }
+                    else {
+                        push(vm, BOOL_VAL(AS_FLOAT(a) >= AS_FLOAT(b)));
+                    }
+                }
+                else {
+                    if (IS_INT(a)) {
+                        push(vm, BOOL_VAL(AS_INT(a) >= AS_FLOAT(b)));
+                    }
+                    else {
+                        push(vm, BOOL_VAL(AS_FLOAT(a) >= AS_INT(b)));
+                    }
+                }
 
                 break;
-            }    
+            }
             case OP_EQUALS: {
                 push(vm, BOOL_VAL(valuesEqual(pop(vm), pop(vm))));
                 break;
@@ -1469,7 +1465,7 @@ InterpretResult run(VM* vm) {
                 push(vm, OBJ_VAL(cell));
 
                 break;
-            } 
+            }
             case OP_CAR: {
                 if (!IS_CELL(peek(vm, 0))) {
                     runtimeError(vm, "CAR : Cannot extract car from %s", getValName(peek(vm, 0)));
@@ -1481,7 +1477,7 @@ InterpretResult run(VM* vm) {
                 push(vm, CAR(value));
 
                 break;
-            }       
+            }
             case OP_CDR: {
                 if (!IS_CELL(peek(vm, 0))) {
                     runtimeError(vm, "CDR : Cannot extract cdr from %s", getValName(peek(vm, 0)));
@@ -1493,22 +1489,22 @@ InterpretResult run(VM* vm) {
                 push(vm, CDR(value));
 
                 break;
-            }       
+            }
             case OP_CONCAT: {
                 if (!TYPES_EQUAL(peek(vm, 0), peek(vm, 1))) {
                     runtimeError(vm, "CONCAT : Cannot concatenate %s and %s", getValName(peek(vm, 0)), getValName(peek(vm, 1)));
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                
+
                 Value b = peek(vm, 0);
                 Value a = peek(vm, 1);
 
                 if (IS_STRING(a)) {
                     ObjString* c = concatStrings(vm, AS_STRING(a), AS_STRING(b));
-    
+
                     pop(vm); // b
                     pop(vm); // a
-    
+
                     push(vm, OBJ_VAL(c));
                 }
                 else if (IS_LIST(a)) {
@@ -1571,7 +1567,7 @@ InterpretResult run(VM* vm) {
                 break;
             }
             case OP_JUMP_IF_FALSE: {
-                uint16_t spot = READ_SHORT(vm); 
+                uint16_t spot = READ_SHORT(vm);
                 if (!isTruthy(peek(vm, 0))) {
                     currentFrame(vm)->ip += spot;
                 }
@@ -1599,18 +1595,15 @@ InterpretResult run(VM* vm) {
                 uint8_t depth = READ_BYTE(vm);
 
                 Value upvalue;
-                
+
                 if (!retrieveUpvalue(vm, depth, &upvalue)) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
 
                 push(vm, upvalue);
-                
+
                 break;
             }
-            // TODO: Add support for upvalues from greater scopes
-            // OP_CLOSURE (or a second accompanying OP) could insert greater-scoped upvalues into the closures upvalue list
-            // The calling function will likely need to itself be a closure
             case OP_CLOSURE: {
                 uint8_t count = READ_BYTE(vm);
                 if (!IS_FUNC(peek(vm, 0))) {
@@ -1626,12 +1619,12 @@ InterpretResult run(VM* vm) {
                 push(vm, OBJ_VAL(closure));
 
                 ObjClosure* current = currentFrame(vm)->closure;
-                
-                
+
+
                 for (int i = 0; i < count; i++) {
                     bool isLocal = (bool)READ_BYTE(vm);
                     uint8_t depth = READ_BYTE(vm);
-                    
+
                     if (isLocal) {
                         closure->upvalues[i] = currentFrame(vm)->slots[depth];
                     } else {
@@ -1681,7 +1674,7 @@ InterpretResult run(VM* vm) {
                 ObjList* list = newList(vm);
 
                 push(vm, OBJ_VAL(list));
-                
+
                 uint8_t i = count + 1;
                 while (i - 1) {
                     writeValueArray(vm, &list->array, peek(vm, --i));
@@ -1700,7 +1693,7 @@ InterpretResult run(VM* vm) {
             case OP_MAP: {
                 uint8_t count = READ_BYTE(vm);
                 ObjMap* map = newMap(vm);
-                
+
                 push(vm, OBJ_VAL(map));
 
                 uint8_t i = (count*2) + 1;
@@ -1732,7 +1725,7 @@ InterpretResult run(VM* vm) {
             case OP_SUBSCRIPT: {
                 Value thing = peek(vm, 1);
                 Value index = peek(vm, 0);
-                
+
                 if (IS_MAP(thing)) {
                     if (!IS_STRING(index)) {
                         runtimeError(vm, "SUBSCRIPT : Expected string, got %s", getValName(index));
@@ -1784,11 +1777,11 @@ InterpretResult run(VM* vm) {
                 Value array = peek(vm, 1);
 
                 if (IS_LIST(array)) {
-                    
+
                     ObjList* list = AS_LIST(array);
-    
+
                     writeValueArray(vm, &list->array, value);
-    
+
                     pop(vm);
                 }
                 else if (IS_MAP(array)) {
@@ -1821,7 +1814,7 @@ InterpretResult run(VM* vm) {
             }
             case OP_TEST_CASE: {
                 uint16_t spot = READ_SHORT(vm);
-                
+
                 if (valuesEqual(peek(vm, 0), peek(vm, 1))) {
                     pop(vm);
                     pop(vm);
@@ -1864,26 +1857,26 @@ InterpretResult run(VM* vm) {
                 }
 
                 ObjFunction* fn = newFunction(vm, NULL);
-                
+
                 push(vm, OBJ_VAL(fn)); // GC :: +1 to all the peek()'s
-                
+
                 size_t instruction_n = currentFrame(vm)->ip - currentFrame(vm)->function->body.code - 1;
                 int line_n = currentFrame(vm)->function->body.lines[instruction_n];
 
                 int arity = getArity(vm, peek(vm, 1));
-                
+
                 if (arity == -1) {
                     runtimeError(vm, "COMPOSE : Cannot compose %s with %s", getValName(peek(vm, 0)), getValName(peek(vm, 1)));
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                
+
                 fn->arity = arity;
-                
+
 
                 addConstant(vm, &fn->body, peek(vm, 2));
                 writeChunk(vm, &fn->body, OP_LOADV, line_n);
                 writeChunk(vm, &fn->body, 0, line_n);
-                
+
                 addConstant(vm, &fn->body, peek(vm, 1));
                 writeChunk(vm, &fn->body, OP_LOADV, line_n);
                 writeChunk(vm, &fn->body, 1, line_n);
@@ -1899,7 +1892,7 @@ InterpretResult run(VM* vm) {
                 writeChunk(vm, &fn->body, OP_TAIL_CALL, line_n);
                 writeChunk(vm, &fn->body, 1, line_n);
 
-                pop(vm); // GC                
+                pop(vm); // GC
                 pop(vm);
                 pop(vm);
 
@@ -1937,7 +1930,7 @@ InterpretResult run(VM* vm) {
                             runtimeError(vm, "SLICE : Cannot slice %s", getValName(array));
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         long long length = 0;
 
                         if (IS_LIST(array)) {
@@ -1950,7 +1943,7 @@ InterpretResult run(VM* vm) {
                         if (!sliceArray(vm, array, 0, length)) {
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         Value result = pop(vm);
                         pop(vm);
                         push(vm, result);
@@ -1959,41 +1952,41 @@ InterpretResult run(VM* vm) {
                     case 1: { // start to y
                         Value array = peek(vm, 1);
                         Value index = peek(vm, 0);
-                        
+
                         if (!IS_LIST(array) && !IS_STRING(array)) {
                             runtimeError(vm, "SLICE : Cannot slice %s", getValName(array));
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         if (!IS_INT(index)) {
                             runtimeError(vm, "SLICE : Expected VAL_INT, got %s", getValName(index));
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         if (!sliceArray(vm, array, 0, AS_INT(index) - offset)) {
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         Value result = pop(vm);
                         pop(vm);
                         pop(vm);
-                        push(vm, result);             
+                        push(vm, result);
                         break;
                     }
                     case 2: { // x to end
                         Value array = peek(vm, 1);
                         Value index = peek(vm, 0);
-                        
+
                         if (!IS_LIST(array) && !IS_STRING(array)) {
                             runtimeError(vm, "SLICE : Cannot slice %s", getValName(array));
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         if (!IS_INT(index)) {
                             runtimeError(vm, "SLICE : Expected VAL_INT, got %s", getValName(index));
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         long long length = 0;
 
                         if (IS_LIST(array)) {
@@ -2002,11 +1995,11 @@ InterpretResult run(VM* vm) {
                         else {
                             length = AS_STRING(array)->length - 1;
                         }
-                        
+
                         if (!sliceArray(vm, array, AS_INT(index) - offset, length)) {
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         Value result = pop(vm);
                         pop(vm);
                         pop(vm);
@@ -2031,7 +2024,7 @@ InterpretResult run(VM* vm) {
                         if (!sliceArray(vm, array, AS_INT(x) - offset, AS_INT(y) - offset)) {
                             return INTERPRET_RUNTIME_ERROR;
                         }
-                        
+
                         Value result = pop(vm);
                         pop(vm);
                         pop(vm);
@@ -2101,7 +2094,7 @@ InterpretResult run(VM* vm) {
         printf("\nstrings:\n");
         printTable(&vm->strings);
         #endif
-        
+
         #ifdef DEBUG_DISPLAY_TABLES
         printf("\nglobals:\n");
         printTable(&vm->globals);
@@ -2135,7 +2128,7 @@ InterpretResult interpretTEST(const char* source) {
 }
 
 InterpretResult interpret(VM* vm, const char* source) {
-    // no gc during compilation 
+    // no gc during compilation
     // shouldnt be needed normally but repl() makes multiple calls to interpret() with one VM so must be reset
     vm->isActive = false;
     ObjFunction* script = compile(source, vm);

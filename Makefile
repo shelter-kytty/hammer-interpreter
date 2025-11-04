@@ -4,7 +4,7 @@
 #
 
 # Fixed directories/args
-TARGET   := build.exe
+TARGET   := program
 SRC_DIR  := ./src
 REL_DIR  := ./build/release
 DBG_DIR  := ./build/debug
@@ -13,7 +13,7 @@ INC_DIRS  := $(shell find $(SRC_DIR) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 CC       := gcc
-CFLAGS   := -Wall -Wextra
+CFLAGS   := -Wall -Wextra -std=c11
 CPPFLAGS := $(INC_FLAGS) -MMD -MP
 
 # Need to link against math.h manually
@@ -61,5 +61,3 @@ clean:
 	rm -rf $(DBG_DIR)/$(TARGET) $(REL_DIR)/$(TARGET) $(DBG_DIR)/$(SRC_DIR)/* $(REL_DIR)/$(SRC_DIR)/*
 
 -include $(DEPS)
-
-

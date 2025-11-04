@@ -116,7 +116,7 @@ ObjClosure* newClosure(VM* vm, ObjFunction* function, uint8_t upvalueCount) {
     closure->upvalueCount = upvalueCount;
     closure->upvalues = upvalues;
     closure->depths = depths;
-    
+
     return closure;
 }
 
@@ -222,7 +222,7 @@ void printObject(Value value) {
                         printValue(entry->value);
                     }
                 }
-            } 
+            }
             else if (table->count > 1) {
                 int j = 0;
 

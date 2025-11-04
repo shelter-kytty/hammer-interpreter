@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #include "common.h"
- 
+
 #include "scanner.h"
 
 
@@ -34,7 +34,7 @@ void printToken(const Token* token) {
         case TOKEN_SLASH:           printf("/\n"); break;
         case TOKEN_PERCENT:         printf("%%\n"); break;
         case TOKEN_UCARET:          printf("^\n"); break;
-        
+
         case TOKEN_EQUALS:          printf("=\n"); break;
         case TOKEN_RECEIVE:         printf("<<\n"); break;
         case TOKEN_COLON:           printf(":\n"); break;
@@ -47,14 +47,14 @@ void printToken(const Token* token) {
         case TOKEN_BANG_EQUALS:     printf("!=\n"); break;
         case TOKEN_EQUALS_EQUALS:   printf("==\n"); break;
         case TOKEN_DOLLAR:          printf("$\n"); break;
-        
+
         case TOKEN_QUESTION:        printf("?\n"); break;
         case TOKEN_BANG:            printf("!\n"); break;
         case TOKEN_PIPE:            printf("|\n"); break;
         case TOKEN_SPIGOT:          printf("|>\n"); break;
 
         case TOKEN_CUSTOM:          printf("cstm: %.*s\n", token->length, token->start); break;
-        
+
 
         // Literals :: 23 - 32
         case TOKEN_IDENTIFIER:      printf("idf: %.*s\n", token->length, token->start); break;
@@ -88,8 +88,8 @@ void printToken(const Token* token) {
         case TOKEN_EOF:             printf("EOF\n"); break;
         case TOKEN_ERROR:           printf("[ Error at line %d ]: %s\n", token->line, token->start); break;
 
-        
-        default:                    printf("Print rule does not exist for token %d [ %.*s ]\n", 
+
+        default:                    printf("Print rule does not exist for token %d [ %.*s ]\n",
             token->type, token->length, token->start); break;
     }
 }
@@ -147,15 +147,15 @@ static void endlineBreak(Scanner* scanner) {
             break;
         case '/': {
             if (peekNext(scanner) == '/') {
-                
-                while (peek(scanner) != '\n' && !isAtEnd(scanner)) 
+
+                while (peek(scanner) != '\n' && !isAtEnd(scanner))
                     advance(scanner);
-                
+
                 if (!isAtEnd(scanner)) {
                     advance(scanner);
                     scanner->line++;
                 }
-                
+
                 break;
             }
             return;
@@ -203,7 +203,7 @@ static Token scanNums(Scanner* scanner) {
 
     if (peek(scanner) == '.' && isDigit(peekNext(scanner))) {
         advance(scanner);
-        
+
         while (isDigit(peek(scanner))) {
             advance(scanner);
         }
@@ -226,13 +226,13 @@ static Token scanNums(Scanner* scanner) {
 
         type = TOKEN_FLOAT;
     }
-    
+
 
     return makeToken(scanner, type);
 }
 
 static TokenType idToken(Scanner* scanner, const char* key, int start, int length, TokenType type) {
-    if (scanner->current - scanner->start == start + length && 
+    if (scanner->current - scanner->start == start + length &&
         memcmp(scanner->start + start, key, length) == 0) return type;
     return TOKEN_IDENTIFIER;
 }
@@ -298,7 +298,7 @@ static Token character(Scanner* scanner) {
     else if (peek(scanner) == '\\') {
         advance(scanner);
         advance(scanner);
-    } 
+    }
     else {
         advance(scanner);
     }
@@ -347,30 +347,30 @@ static Token formattedString(Scanner* scanner) {
 
 // Should be easy enough to get something hacky together, maybe have '`' as a mandatory prefix until
 // the whole "organising things into fn calls" thing is sorted out. I don't think it'll be THAT bad, but
-// it'll just take... so, so long 
+// it'll just take... so, so long
 
 // '[:+-*\=^&/|@<#$!~?>]+'
 bool isGlyph(char c) {
     switch (c) {
         case '+': case '-': case '*':
         case '^': case '/': case '%':
-        case ':': case '$': case '|': 
-        case '.': case '>': case '<': 
-        case '@': case '#': case '?': 
-        case '!': case '~': case '&': 
+        case ':': case '$': case '|':
+        case '.': case '>': case '<':
+        case '@': case '#': case '?':
+        case '!': case '~': case '&':
         case '=': case '\\': return true;
         default: return false;
     }
 }
 
 static TokenType idOp(Scanner* scanner, const char* key, int start, int length, TokenType type) {
-    if (scanner->current - scanner->start == start + length && 
+    if (scanner->current - scanner->start == start + length &&
         memcmp(scanner->start + start, key, length) == 0) return type;
     return TOKEN_CUSTOM;
 }
 
 // Operators that could be removed 100%
-//  - `<< / Receive 
+//  - `<< / Receive
 //  - `|> / Pipline
 // Operators that COULD go
 //  - Most arithmetic operators (`+, `-, `*, `^, `/, `%)

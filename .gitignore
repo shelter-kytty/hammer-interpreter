@@ -2,7 +2,9 @@
 *.exe
 *.o
 *.c.d
+compile_commands.json
 
 # directories to ignore
 /build
 /notes
+/.cache

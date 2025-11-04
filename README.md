@@ -37,7 +37,7 @@ From there I have a lot in mind; user type/class definitions, an object model en
 ## 1.0.0 (in progress)
 - [x] Add proper argument checks to NativeFns missing them
 - [x] Remove unnecessary token types/features, namely `print`, `put`, `func` and `let`, and their corresponding opcodes
-- [ ] Remove the optimising parts of the compiler
+- [x] Remove the optimising parts of the compiler
 - [x] Rework `applyOperator()` NativeFn to be variadic
 - [ ] More sensible debug/error messages
 - [ ] More consistent/better formatting for control flow, etc.

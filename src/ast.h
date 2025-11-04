@@ -65,11 +65,11 @@ typedef struct {
     bool hadError;
 
     // Dynamic
-    Token* current;
+    Token* current;      // the current (yet-to-be-consumed) token
     BlockExpr* program;  // the actual Abstract Syntax Tree
     Expr* expressions;   // linked list head for memory collection
-    Token* tokens;
-    Compiler* compiler;
+    Token* tokens;       // the token stack
+    Compiler* compiler;  // the associated compiler
 } ProgramTree;
 
 void printExpression(Expr* expression);

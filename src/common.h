@@ -17,7 +17,8 @@ typedef enum {
 // DEBUGGING ------------------->
 #ifdef DEBUG
 /* Compilation info */
-//#define DEBUG_DISPLAY_TOKENS
+#define DEBUG_PARSER_PROGRESS
+#define DEBUG_DISPLAY_TOKENS
 #define DEBUG_DISPLAY_AST
 #define DEBUG_COMPILER_PROGRESS
 #define DEBUG_UPVALUE_INFO
