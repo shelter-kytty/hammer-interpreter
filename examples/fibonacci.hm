@@ -1,17 +1,17 @@
 
 fibNaive : n = {
-    if n < 2 
-    then n 
+    if n < 2
+    then n
     else fibNaive(n - 1) + fibNaive(n - 2)
 }
 
 a1 = clock()
 
-print fibNaive(8)
+printfn("{0}" ; fibNaive(40))
 
 b1 = clock()
 
-printf(f"Took {0} seconds\n" ; b1 - a1)
+printfn("fibNaive took {0} seconds" ; b1 - a1)
 
 
 
@@ -23,11 +23,11 @@ fibMemo : n = {
 
 a2 = clock()
 
-print fibMemo(8)
+printfn("{0}" ; fibMemo(80))
 
 b2 = clock()
 
-printf(f"Took {0} seconds\n" ; b2 - a2)
+printfn("fibMemo took {0} seconds" ; b2 - a2)
 
 
 
@@ -57,11 +57,11 @@ fibLog : n = {
 
 a3 = clock()
 
-print fibLog(80)
+printfn("{0}" ; fibLog(80))
 
 b3 = clock()
 
-printf(f"fibLog took {0} seconds\n" ; b3 - a3)
+printfn("fibLog took {0} seconds" ; b3 - a3)
 
 
 
@@ -77,11 +77,11 @@ fibTail : n = {
 
 a4 = clock()
 
-print fibTail(80)
+printfn("{0}" ; fibTail(80))
 
 b4 = clock()
 
-printf(f"fibTail took {0} seconds\n" ; b4 - a4)
+printfn("fibTail took {0} seconds" ; b4 - a4)
 
 
 
@@ -89,11 +89,11 @@ lucas : n = 1.6180339887498948482^n / 2.2360679774998
 
 a5 = clock()
 
-print lucas(80)
+printfn("{0}" ; lucas(80))
 
 b5 = clock()
 
-printf(f"Lucas took {0} seconds\n" ; b5 - a5)
+printfn("Lucas took {0} seconds" ; b5 - a5)
 
 
 
@@ -131,21 +131,21 @@ trans : mat = {
         }
         map(c_ij(x ; _) ; c)
     }
-    
+
     map(Galbo ; a)
 }
 
 fib_Max : n = {
-    if n <= 0 then 
-    return 0 
+    if n <= 0 then
+    return 0
     else unit
-    
+
     i = n - 1
     f = [[1;0];[0;1]]
     a = [[0;1];[1;1]]
 
     helper : I F A = {
-        if I > 0 
+        if I > 0
         then
             if I % 2 == 0
             then <- helper({I / 2} ; F ; A#A)
@@ -159,8 +159,8 @@ fib_Max : n = {
 
 a6 = clock()
 
-print fib_Max(80)
+printfn("{0}"; fib_Max(80))
 
 b6 = clock()
 
-printf(f"Max took {0} seconds\n" ; b6 - a6)
+printfn("Max took {0} seconds" ; b6 - a6)

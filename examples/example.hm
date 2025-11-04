@@ -15,7 +15,31 @@ partial = A(_ ; 10)
 
 printfn("{0}" ; partial(3))
 
+
 match 2
 | 1 => printfn("its 1")
 | 2 => printfn("its 2")
 | 3 => printfn("its 3")
+
+
+B = [1 2 3 4 5 6]
+
+C : i = {
+    printfn("{0}" ; B[i])
+    if i < len(B) then
+        <- C(i+1)
+    else
+        unit
+}
+
+C(1)
+
+
+D = [
+    "type" => "Map"
+    "members" => 4
+    "name" => "D"
+    "func" => _ : i = i^2
+]
+
+printfn("Hello, I'm '{0}', I'm a {1} with {2} members. {3}!" ; D["name"] ; D["type"] ; D["members"] ; D["func"](29))
