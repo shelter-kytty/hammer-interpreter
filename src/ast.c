@@ -184,7 +184,7 @@ static void writeToken(ProgramTree* tree, Token token) {
     tree->tokenCount++;
 }
 
-void initTree(ProgramTree* tree, const char* source) {
+void initTree(ProgramTree* tree, Compiler* compiler, const char* source) {
     tree->tokenCount = 0;
     tree->tokenCapacity = 0;
     tree->tokens = NULL;
@@ -193,7 +193,7 @@ void initTree(ProgramTree* tree, const char* source) {
     tree->program = NULL;
     tree->hadError = false;
     tree->panicMode = false;
-    tree->compiler = NULL;
+    tree->compiler = compiler;
     initScanner(&tree->scanner, source);
 }
 
@@ -207,7 +207,7 @@ void freeTree(ProgramTree* tree) {
         expr = next;
     }
 
-    initTree(tree, NULL);
+    initTree(tree, NULL, NULL);
 }
 
 /*
@@ -660,14 +660,20 @@ static Expr* function(ProgramTree* tree, Expr* last) {
 }
 
 static ObjString* genID(ProgramTree* tree, int i) {
+    char hex_lookup[16] = {
+        '0', '1', '2', '3',
+        '4', '5', '6', '7',
+        '8', '9', 'A', 'B',
+        'C', 'D', 'E', 'F'
+    };
+
     int id_len = 3;
     char* id_base = ALLOCATE(tree->compiler->vm, id_len + 1, char);
 
     id_base[id_len] = '\0';
     id_base[0] = '0';
-
-    id_base[1] = (char)('0' + (i % 16));
-    id_base[2] = (char)('0' + (i / 16));
+    id_base[1] = hex_lookup[i / 16];
+    id_base[2] = hex_lookup[i % 16];
 
     // No need to manually free afterwards ; takeString frees or uses it
     ObjString* str = takeString(tree->compiler->vm, id_base, id_len);
@@ -901,7 +907,7 @@ void debugAST(const char* source) {
     initCompiler(&compiler, &vm, 0, NULL);
 
     ProgramTree tree;
-    initTree(&tree, source);
+    initTree(&tree, &compiler, source);
 
     writeToken(&tree, (Token){ TOKEN_SOF, source, 0, 0 });
     tree.program = Block(&tree, *tree.tokens);
@@ -947,9 +953,7 @@ void debugAST(const char* source) {
 
 void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
     // vvvv Setup Program Tree
-    initTree(tree, source);
-
-    tree->compiler = compiler;
+    initTree(tree, compiler, source);
 
     writeToken(tree, (Token){ TOKEN_SOF, source, 0, 0 });
     tree->program = Block(tree, *tree->tokens);
@@ -993,12 +997,14 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
 
 void serialiseAST(const char* source) {
     // SETUP ------------------------------- vvvv
-    VM vm; initVM(&vm);
+    VM vm;
+    initVM(&vm);
 
-    Compiler compiler; initCompiler(&compiler, &vm, 0, NULL);
+    Compiler compiler;
+    initCompiler(&compiler, &vm, 0, NULL);
 
     ProgramTree tree;
-    initTree(&tree, source);
+    initTree(&tree, &compiler, source);
 
     writeToken(&tree, (Token){ TOKEN_SOF, source, 0, 0 });
     tree.program = Block(&tree, *tree.tokens);
@@ -1028,8 +1034,6 @@ void serialiseAST(const char* source) {
     while (!check(&tree, TOKEN_EOF)) {
         writeExpr(tree.program, topLevel(&tree));
     }
-
-    printf("Hello :3\n");
 
     writeExpr(tree.program, (Expr*)Literal(&tree, (Token){TOKEN_UNIT, tree.current->start, 0, tree.current->line}));
 
