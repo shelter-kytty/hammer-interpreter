@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <argp.h>
 
 #include "common.h"
 
@@ -8,29 +9,13 @@
 #include "vm.h"
 #include "ast.h"
 
-static void repl() {
-    VM vm;
-    initVM(&vm);
 
-    for (;;) {
-        char buf[1024];
-        printf("\n>>> ");
+const char* argp_program_version = "hammer v0.1.2-alpha";
+const char* argp_program_bug_address = "git@github.com:shelter-kytty/hammer-interpreter/issues";
+static char doc[] = "An interpreter for the programming language hammer.";
+static char args_doc[] = "[FILENAME]...";
+static struct argp_option options[] = {};
 
-        if (!fgets(buf, sizeof(buf), stdin)) {
-            printf("\n");
-            break;
-        }
-
-        InterpretResult result = interpret(&vm, buf);
-
-        if (result == INTERPRET_RUNTIME_ERROR) {
-            fprintf(stderr, "Runtime error\n");
-            break;
-        }
-    }
-
-    freeVM(&vm);
-}
 
 static char* readFile(const char* path) {
     FILE* file = fopen(path, "rb");
@@ -62,28 +47,6 @@ static char* readFile(const char* path) {
     fclose(file);
 
     return buffer;
-}
-
-static void writeFile(const char* path, const char* data) {
-    size_t length = strlen(path);
-    char* newPath = (char*)malloc((strlen(path) * sizeof(char)) + (3 * sizeof(char)));
-
-    memcpy(newPath, path, length);
-    memcpy(newPath + length, ".ml", 3);
-
-    FILE* file = fopen(newPath, "w");
-
-    if (file == NULL) {
-        fprintf(stderr, "Could not create/write to file '%s'", newPath);
-        exit(74);
-    }
-
-    fputs(data, file);
-
-    printf("Successfully wrote to '%s'", newPath);
-
-    fclose(file);
-    free(newPath);
 }
 
 int main(int argc, char* argv[])

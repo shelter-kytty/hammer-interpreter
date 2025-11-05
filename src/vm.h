@@ -21,7 +21,7 @@ struct VM {
     int frameCount;
     Value stack[STACK_SIZE];
     Value* stackTop;
-    
+
     // Rigid
     Compiler* compiler;
 
@@ -32,7 +32,7 @@ struct VM {
     Table strings;
     Table globals;
 
-//  -+ Garbage Collection +- 
+//  -+ Garbage Collection +-
     // Should the gc consider the heap size?
     // Remains 'false' until the vm enters the
     // runtime environment
@@ -59,6 +59,7 @@ void initVM(VM* vm);
 void freeVM(VM* vm);
 InterpretResult interpret(VM* vm, const char* source);
 InterpretResult interpretTEST(const char* source);
+InterpretResult repl();
 
 
 #endif

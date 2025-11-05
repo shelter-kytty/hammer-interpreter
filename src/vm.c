@@ -2143,6 +2143,33 @@ InterpretResult interpret(VM* vm, const char* source) {
     return run(vm);
 }
 
+InterpretResult repl() {
+    VM vm;
+    initVM(&vm);
+
+    InterpretResult res = INTERPRET_RUNTIME_ERROR;
+
+    for (;;) {
+        char buf[2048];
+        printf("\n>>> ");
+
+        if (!fgets(buf, sizeof(buf), stdin)) {
+            printf("Error receiving input\n");
+            continue;
+        }
+
+        res = interpret(&vm, buf);
+
+        if (res == INTERPRET_RUNTIME_ERROR) {
+            // TODO: make cleanVM() if at all possible
+            break;
+        }
+    }
+
+    freeVM(&vm);
+    return res;
+}
+
 /*
 +---------------------+
 | Runtime       ^^^^  |
