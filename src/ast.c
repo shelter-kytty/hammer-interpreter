@@ -734,7 +734,8 @@ static Expr* apply(ProgramTree* tree, Expr* last) {
         }
         consume(tree, TOKEN_RIGHT_PAREN, "Expected ')' after params");
     } else {
-        while (getRule(getToken(tree).type)->head != NULL) {
+        int _line_n = operator.line;
+        while (getRule(getToken(tree).type)->head != NULL && getToken(tree).line == _line_n) {
             Expr* param = expression(tree, PREC_GENERIC_LOW);
 
             if (param->type == EXPR_LITERAL && ((LiteralExpr*)param)->token.type == TOKEN_WILDCARD) {

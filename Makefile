@@ -4,7 +4,7 @@
 #
 
 # Fixed directories/args
-TARGET   := program
+TARGET   := hmc
 SRC_DIR  := ./src
 REL_DIR  := ./build/release
 DBG_DIR  := ./build/debug

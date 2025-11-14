@@ -587,6 +587,7 @@ static void bindVal(Compiler* compiler, BinaryExpr* binary) {
     }
 }
 
+// TODO: this can be cleaned up/improved; either making the decision to only allow list-like cells to be deconstructed, or adding functionality to deconstruct more complex arrangements
 static void recurse(Compiler* compiler, BinaryExpr* binary) {
 
     if (getToken(compiler, binary->right).type == TOKEN_COMMA) {

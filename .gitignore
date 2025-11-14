@@ -2,10 +2,13 @@
 *.exe
 *.o
 *.c.d
-compile_commands.json
 
 # directories to ignore
 /build
 /notes
 /tests
 /.cache
+/.zed
+
+# files to ignore
+compile_commands.json
