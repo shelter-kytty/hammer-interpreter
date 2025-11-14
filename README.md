@@ -38,7 +38,7 @@ Hammer is now in a state where Im confident about working on it further, adding 
 ## v0.3.0
 - Separate nativeFNs out into libraries and add `include` imperatives/similar to include them in projects
   - Implement namespaces/objects and syntax for them to this end
-- Add the ability to `include` other hammer source files
+  - Add the ability to `include` other hammer source files
 - Simple JSON library
 
 ## v0.4.0

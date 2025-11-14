@@ -1,8 +1,10 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <argp.h>
 #include <errno.h>
+#include <memory.h>
 
 #include "common.h"
 
@@ -12,6 +14,7 @@
 
 static char* readFile(const char* path);
 void say_error(const char* msg, int n);
+char *convertPath(const char *path, const char *ftype);
 
 const char* argp_program_version = "hammer v0.1.3-alpha";
 const char* argp_program_bug_address = "https://github.com/shelter-kytty/hammer-interpreter/issues";
@@ -22,6 +25,8 @@ static struct argp_option options[] = {
     { "json", 'j', "FILE", 0, "Output AST of FILE as JSON data", 0 },
     { "compile", 'c', "FILE", 0, "Compile AST of FILE to binary", 0 },
     { "ouput", 'o', "FILENAME", 0, "Send output to FILENAME instead of stdout", 0 },
+    { "link", 'l', "SRC", 0, "Link SRC with compilation unit", 0 },
+    { 0, 0, 0, OPTION_DOC, "SRC is a .o or .json file executed before main unit", 0 },
     { 0 }
 };
 
@@ -32,6 +37,10 @@ struct input {
     const char* arg;
     // output path (for when -o is specified)
     const char* output;
+    // link paths (for when -l is specified)
+    const char *links[256];
+    // link count
+    int linkn;
 };
 
 static error_t parse_opt(int key, char *arg, struct argp_state* state) {
@@ -40,8 +49,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state* state) {
         case 'r': input->mode = REPL_MODE; break;
         case 'i': input->mode = INTERPRET_MODE; input->arg = arg; break;
         case 'j': input->mode = JSON_DATA_MODE; input->arg = arg; break;
-        case 'c': input->mode = COMPILE_MODE; input-> arg = arg; break;
+        case 'c': input->mode = COMPILE_MODE; input->arg = arg; break;
         case 'o': input->output = arg; break;
+        case 'l': input->links[input->linkn++] = arg; break;
         case ARGP_KEY_ARG: {
             //non-key option passed, probably interpreting a file
             input->mode = INTERPRET_MODE;
@@ -61,8 +71,12 @@ int main(int argc, char* argv[])
     input.mode = REPL_MODE; //default running mode ; argp_parse leaves input untouched in the case there are no arguments passed to the program
     input.arg = NULL;
     input.output = NULL;
+    input.linkn = 0;
 
     int result = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, 0, &input);
+
+    for (int i = 0; i < input.linkn; i++)
+        printf("%s\n", input.links[i]);
 
     if (result != 0) {
         say_error("Error when parsing args", result);
@@ -89,10 +103,16 @@ int main(int argc, char* argv[])
             case JSON_DATA_MODE: {
                 char *source = readFile(input.arg);
 
-                if (input.output == NULL)
-                    serialiseAST(stdout, source);
-                else {
-                    FILE *file = fopen(input.output, "a");
+                if (input.output == NULL) {
+                    char *path = convertPath(input.arg, ".json");
+
+                    FILE *file = fopen(path, "w");
+                    serialiseAST(file, source);
+
+                    fclose(file);
+                    free(path);
+                } else {
+                    FILE *file = fopen(input.output, "w");
                     serialiseAST(file, source);
                     fclose(file);
                 }
@@ -100,7 +120,26 @@ int main(int argc, char* argv[])
                 free(source);
                 break;
             }
-            case COMPILE_MODE: printf("COMPILE_MODE\n"); break;
+            case COMPILE_MODE: {
+                char *source = readFile(input.arg);
+
+                if (input.output == NULL) {
+                    char *path = convertPath(input.arg, ".o");
+
+                    FILE *file = fopen(path, "w");
+                    serialiseAST(file, source);
+
+                    fclose(file);
+                    free(path);
+                } else {
+                    FILE *file = fopen(input.output, "w");
+                    serialiseAST(file, source);
+                    fclose(file);
+                }
+
+                free(source);
+                break;
+            }
             default:
                 fprintf(stderr, "Unknown option\n"); break;
         }
@@ -143,4 +182,17 @@ static char* readFile(const char* path) {
 
 void say_error(const char* msg, int n) {
     fprintf(stderr, "%s\n%s\n", msg, strerror(n));
+}
+
+// Result must be freed
+char *convertPath(const char *path, const char *ftype) {
+    size_t extra = strlen(ftype);
+    size_t ttl = extra + strlen(path);
+
+    char *new_path = (char*)malloc(ttl + 1);
+    memcpy(new_path, path, ttl - extra);
+    memcpy(new_path + ttl - extra, ftype, extra);
+    new_path[ttl] = '\0';
+
+    return new_path;
 }

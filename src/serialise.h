@@ -4,6 +4,6 @@
 #include "ast.h"
 #include <stdio.h>
 
-void serialiseExpr(FILE* file, Expr* expression);
+void serialiseExpr(FILE *file, Expr *expression);
 
 #endif
