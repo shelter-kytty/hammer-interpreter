@@ -2,7 +2,8 @@
 #define serialise_h_hammer
 
 #include "ast.h"
+#include <stdio.h>
 
-void serialiseExpr(Expr* expression);
+void serialiseExpr(FILE* file, Expr* expression);
 
 #endif

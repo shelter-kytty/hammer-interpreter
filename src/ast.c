@@ -996,7 +996,7 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source) {
 +---------------------------+
 */
 
-void serialiseAST(const char* source) {
+void serialiseAST(FILE* file, const char* source) {
     // SETUP ------------------------------- vvvv
     VM vm;
     initVM(&vm);
@@ -1038,7 +1038,7 @@ void serialiseAST(const char* source) {
 
     writeExpr(tree.program, (Expr*)Literal(&tree, (Token){TOKEN_UNIT, tree.current->start, 0, tree.current->line}));
 
-    serialiseExpr((Expr*)tree.program);
+    serialiseExpr(file, (Expr*)tree.program);
 
     freeTree(&tree);
 

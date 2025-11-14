@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "scanner.h"
-
+#include <stdio.h>
 
 typedef struct Expr Expr;
 
@@ -80,7 +80,7 @@ void debugOptimisation(const char* source);
 void createTree(Compiler* compiler, ProgramTree* tree, const char* source);
 void initTree(ProgramTree* tree, Compiler* compiler, const char* source);
 void freeTree(ProgramTree* tree);
-void serialiseAST(const char *source);
+void serialiseAST(FILE* file, const char *source);
 
 
 #endif

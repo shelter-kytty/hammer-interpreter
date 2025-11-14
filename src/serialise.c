@@ -68,88 +68,88 @@ const char* tokenName(TokenType type) {
     }
 }
 
-void serialiseToken(Token* token) {
-    printf("\"token\": { ");
+void serialiseToken(FILE* file, Token* token) {
+    fprintf(file, "\"token\": { ");
     if (token->start == NULL) {
-        printf("\"content\": \"null\"");
+        fprintf(file, "\"content\": \"null\"");
     } else if (token->type == TOKEN_STRING || token->type == TOKEN_FORMAT_STRING) {
-        printf("\"content\": %.*s", token->length, token->start);
+        fprintf(file, "\"content\": %.*s", token->length, token->start);
     } else {
-        printf("\"content\": \"%.*s\"", token->length, token->start);
+        fprintf(file, "\"content\": \"%.*s\"", token->length, token->start);
     }
 
-    printf(", \"type\": \"%s\"", tokenName(token->type));
+    fprintf(file, ", \"type\": \"%s\"", tokenName(token->type));
 
-    printf(", \"line\": %d", token->line);
+    fprintf(file, ", \"line\": %d", token->line);
 
-    printf(" }");
+    fprintf(file, " }");
 }
 
-void serialiseLiteral(LiteralExpr* literal) {
-    printf("{ \"type\": \"Literal\", ");
-    serialiseToken(&literal->token);
-    printf(" }");
+void serialiseLiteral(FILE* file, LiteralExpr* literal) {
+    fprintf(file, "{ \"type\": \"LITERAL\", ");
+    serialiseToken(file, &literal->token);
+    fprintf(file, " }");
 }
 
-void serialiseUnary(UnaryExpr* unary) {
-    printf("{ \"type\": \"Unary\", ");
-    serialiseToken(&unary->token);
+void serialiseUnary(FILE* file, UnaryExpr* unary) {
+    fprintf(file, "{ \"type\": \"UNARY\", ");
+    serialiseToken(file, &unary->token);
 
-    printf(", \"operand\": ");
-    serialiseExpr(unary->operand);
-    printf(" }");
+    fprintf(file, ", \"operand\": ");
+    serialiseExpr(file, unary->operand);
+    fprintf(file, " }");
 }
 
-void serialiseBinary(BinaryExpr* binary) {
-    printf("{ \"type\": \"Binary\", ");
-    serialiseToken(&binary->token);
+void serialiseBinary(FILE* file, BinaryExpr* binary) {
+    fprintf(file, "{ \"type\": \"BINARY\", ");
+    serialiseToken(file, &binary->token);
 
-    printf(", \"left\": ");
-    serialiseExpr(binary->left);
-    printf(", ");
+    fprintf(file, ", \"left\": ");
+    serialiseExpr(file, binary->left);
+    fprintf(file, ", ");
 
-    printf("\"right\": ");
-    serialiseExpr(binary->right);
-    printf(" }");
+    fprintf(file, "\"right\": ");
+    serialiseExpr(file, binary->right);
+    fprintf(file, " }");
 }
 
-void serialiseTernary(TernaryExpr* ternary) {
-    printf("{ \"type\": \"Ternary\", ");
-    serialiseToken(&ternary->token);
+void serialiseTernary(FILE* file, TernaryExpr* ternary) {
+    fprintf(file, "{ \"type\": \"TERNARY\", ");
+    serialiseToken(file, &ternary->token);
 
-    printf(", \"pivot\": ");
-    serialiseExpr(ternary->pivot);
-    printf(", ");
+    fprintf(file, ", \"pivot\": ");
+    serialiseExpr(file, ternary->pivot);
+    fprintf(file, ", ");
 
-    printf("\"left\": ");
-    serialiseExpr(ternary->left);
-    printf(", ");
+    fprintf(file, "\"left\": ");
+    serialiseExpr(file, ternary->left);
+    fprintf(file, ", ");
 
-    printf("\"right\": ");
-    serialiseExpr(ternary->right);
-    printf(" }");
+    fprintf(file, "\"right\": ");
+    serialiseExpr(file, ternary->right);
+    fprintf(file, " }");
 }
 
-void serialiseBlock(BlockExpr* block) {
-    printf("{ \"type\": \"Block\", ");
-    serialiseToken(&block->token);
+void serialiseBlock(FILE* file, BlockExpr* block) {
+    fprintf(file, "{ \"type\": \"BLOCK\", ");
+    serialiseToken(file, &block->token);
 
-    printf(", \"subexprs\": [ ");
+    fprintf(file, ", \"subexprs\": [ ");
     for (int i = 0; i < block->count; i++) {
         if (i > 0)
-            printf(", ");
-        serialiseExpr(block->subexprs[i]);
+            fprintf(file, ", ");
+        serialiseExpr(file, block->subexprs[i]);
     }
-    printf(" ] }");
+    fprintf(file, " ] }");
 }
 
-void serialiseExpr(Expr* expression) {
+void serialiseExpr(FILE* file, Expr* expression) {
     switch (expression->type) {
-        case EXPR_LITERAL: serialiseLiteral((LiteralExpr*)expression); break;
-        case EXPR_UNARY: serialiseUnary((UnaryExpr*)expression); break;
-        case EXPR_BINARY: serialiseBinary((BinaryExpr*)expression); break;
-        case EXPR_TERNARY: serialiseTernary((TernaryExpr*)expression); break;
-        case EXPR_BLOCK: serialiseBlock((BlockExpr*)expression); break;
+        case EXPR_LITERAL: serialiseLiteral(file, (LiteralExpr*)expression); break;
+        case EXPR_UNARY: serialiseUnary(file, (UnaryExpr*)expression); break;
+        case EXPR_BINARY: serialiseBinary(file, (BinaryExpr*)expression); break;
+        case EXPR_TERNARY: serialiseTernary(file, (TernaryExpr*)expression); break;
+        case EXPR_BLOCK: serialiseBlock(file, (BlockExpr*)expression); break;
         default: break;
     }
 }

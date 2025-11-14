@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <argp.h>
+#include <errno.h>
 
 #include "common.h"
 
@@ -10,8 +11,9 @@
 #include "ast.h"
 
 static char* readFile(const char* path);
+void say_error(const char* msg, int n);
 
-const char* argp_program_version = "hammer v0.1.2-alpha";
+const char* argp_program_version = "hammer v0.1.3-alpha";
 const char* argp_program_bug_address = "https://github.com/shelter-kytty/hammer-interpreter/issues";
 static char doc[] = "An interpreter for the programming language Hammer.";
 static struct argp_option options[] = {
@@ -19,14 +21,17 @@ static struct argp_option options[] = {
     { "interpret", 'i', "FILE", 0, "Interpret FILE", 0 },
     { "json", 'j', "FILE", 0, "Output AST of FILE as JSON data", 0 },
     { "compile", 'c', "FILE", 0, "Compile AST of FILE to binary", 0 },
-    { "ouput", 'o', "FILENAME", 0, "Send output to FILENAME instead of stdout", 0},
+    { "ouput", 'o', "FILENAME", 0, "Send output to FILENAME instead of stdout", 0 },
     { 0 }
 };
 
 struct input {
+    // working mode
     enum { ERROR_MODE, REPL_MODE, INTERPRET_MODE, JSON_DATA_MODE, COMPILE_MODE  } mode;
+    // working file (for certain working modes)
     const char* arg;
-    int iter;
+    // output path (for when -o is specified)
+    const char* output;
 };
 
 static error_t parse_opt(int key, char *arg, struct argp_state* state) {
@@ -36,21 +41,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state* state) {
         case 'i': input->mode = INTERPRET_MODE; input->arg = arg; break;
         case 'j': input->mode = JSON_DATA_MODE; input->arg = arg; break;
         case 'c': input->mode = COMPILE_MODE; input-> arg = arg; break;
+        case 'o': input->output = arg; break;
         case ARGP_KEY_ARG: {
-            int optn = state->next;
-            if (optn == 2) { //non-key option passed, probably interpreting a file
-                input->mode = INTERPRET_MODE;
-                input->arg = arg;
-            } else /*if (optn == 3)*/ {
-                // something to check what the option passed was, for now  return an error
-                return ARGP_ERR_UNKNOWN;
-            }
+            //non-key option passed, probably interpreting a file
+            input->mode = INTERPRET_MODE;
+            input->arg = arg;
             break;
         };
         default: return ARGP_ERR_UNKNOWN;
     }
-
-    input->iter++;
     return 0;
 }
 
@@ -60,71 +59,51 @@ int main(int argc, char* argv[])
 {
     struct input input;
     input.mode = REPL_MODE; //default running mode ; argp_parse leaves input untouched in the case there are no arguments passed to the program
-    input.iter = 0;
+    input.arg = NULL;
+    input.output = NULL;
 
     int result = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, 0, &input);
 
     if (result != 0) {
-        fprintf(stderr, "Unknown option\n");
+        say_error("Error when parsing args", result);
     } else {
         switch (input.mode) {
-            case ERROR_MODE: printf("ERROR_MODE\n"); break;
-            case REPL_MODE: printf("REPL_MODE\n"); break;
-            case INTERPRET_MODE: printf("INTERPRET_MODE\n"); break;
-            case JSON_DATA_MODE: printf("JSON_DATA_MODE\n"); break;
+            case ERROR_MODE: {
+                fprintf(stderr, "Invalid/unknown options");
+                break;
+            };
+            case REPL_MODE: {
+                repl();
+                break;
+            }
+            case INTERPRET_MODE: {
+                char *source = readFile(input.arg);
+                VM vm; initVM(&vm);
+
+                interpret(&vm, source);
+
+                freeVM(&vm);
+                free(source);
+                break;
+            }
+            case JSON_DATA_MODE: {
+                char *source = readFile(input.arg);
+
+                if (input.output == NULL)
+                    serialiseAST(stdout, source);
+                else {
+                    FILE *file = fopen(input.output, "a");
+                    serialiseAST(file, source);
+                    fclose(file);
+                }
+
+                free(source);
+                break;
+            }
             case COMPILE_MODE: printf("COMPILE_MODE\n"); break;
             default:
                 fprintf(stderr, "Unknown option\n"); break;
         }
-    }
-
-    return 0;
-}
-
-// void option_compile() {
-    // char* source = readFile();
-//
-    // serialiseAST(source);
-//
-    // free(source);
-// }
-
-int main_2(int argc, char* argv[])
-{
-    if (argc == 1) {
-        repl();
-    }
-    else if (memcmp(argv[1], "--help", 6) == 0) {
-        printf("Usage:\n");
-        printf("\thmc\t\t: Initiate a repl\n");
-        printf("\thmc [path]\t: Interpret the source file at [path]\n");
-        printf("\thmc -c [path] : Compile source file at [path] and output to '[fileName].ml' in [path] dir\n");
-        printf("\thmc --help\t: print this dialogue\n");
-    }
-    else if (argc == 3 && memcmp(argv[1], "-c", 2) == 0) {
-        /* put a .ml file into same dir as [path] */
-        char* source = readFile(argv[2]);
-
-        serialiseAST(source);
-
-        free(source);
-    }
-    else if (argc == 2) {
-        /* read and execute file without writing anywhere */
-        char* source = readFile(argv[1]);
-        VM vm; initVM(&vm);
-
-        interpret(&vm, source);
-
-        freeVM(&vm);
-        free(source);
-    }
-    else {
-        printf("Usage:\n");
-        printf("\thmc\t\t: Initiate a repl\n");
-        printf("\thmc [path]\t: Interpret the source file at [path]\n");
-        printf("\thmc -c [path]\t: Compile source file at [path] and output bytecode to '[fileName].ml' in [path] dir\n");
-        printf("\thmc --help\t: print this dialogue\n");
     }
 
     return 0;
@@ -160,4 +139,8 @@ static char* readFile(const char* path) {
     fclose(file);
 
     return buffer;
+}
+
+void say_error(const char* msg, int n) {
+    fprintf(stderr, "%s\n%s\n", msg, strerror(n));
 }
