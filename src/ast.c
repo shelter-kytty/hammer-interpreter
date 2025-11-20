@@ -1,3 +1,5 @@
+#include <complex.h>
+#include <stddef.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +8,7 @@
 #include "memory.h"
 #include "ast.h"
 #include "compiler.h"
+#include "scanner.h"
 #include "vm.h"
 #include "serialise.h"
 
@@ -1047,46 +1050,283 @@ void serialiseAST(FILE* file, const char* source) {
     freeVM(&vm);
 }
 
+size_t countUntil(const char **src, char end) {
+    for (size_t i = 0; *src[i] != '\0'; i++) {
+        if (*src[i] == end) return i;
+    }
+
+    return 0;
+}
+
+TokenType retType(TokenType type, const char **start, size_t i) {
+    (*start) += i;
+    return type;
+}
+
+TokenType tTypeFromName(const char **start) {
+   switch (*start[0]) {
+       //alphabetise and break down into tries
+        case 'A': return retType(TOKEN_AND, start, 3);
+        case 'B': {
+            if (*start[4] == '_')
+                return TOKEN_BANG_EQUALS;
+            return TOKEN_BANG;
+        };
+        case 'C': {
+            switch (*start[1]) {
+                case 'A': return retType(TOKEN_CAR, start, 3);
+                case 'D': return retType(TOKEN_CDR, start, 3);
+                case 'H': return retType(TOKEN_CHAR, start, 4);
+                case 'O': {
+                    switch(*start[2]) {
+                        case 'N': return retType(TOKEN_CONS, start, 4);
+                        case 'M': return retType(TOKEN_COMMA, start, 5);
+                        case 'L': return retType(TOKEN_COLON, start, 5);
+                    }
+                };
+                case 'U': return retType(TOKEN_CUSTOM, start, 6);
+            }
+        };
+        case 'D': {
+            switch (*start[2]) {
+                case 'T': {
+                    if (*start[4] == '_')
+                        return retType(TOKEN_DOT_DOT, start, 7);
+
+                    return retType(TOKEN_DOT, start, 3);
+                };
+                case 'L': return retType(TOKEN_DOLLAR, start, 6);
+            }
+        };
+        case 'E': {
+            switch (*start[1]) {
+                case 'O': return retType(TOKEN_EOF, start, 3);
+                case 'R': return retType(TOKEN_ERROR, start, 5);
+                case 'Q': {
+                    if (*start[6] == '_')
+                        return retType(TOKEN_EQUALS_EQUALS, start, 13);
+
+                    return retType(TOKEN_EQUALS, start, 6);
+                };
+                case 'L': return retType(TOKEN_ELSE, start, 4);
+            }
+        };
+        case 'F': {
+            switch (*start[1]) {
+                case 'A': return retType(TOKEN_FALSE, start, 5);
+                case 'L': return retType(TOKEN_FLOAT, start, 5);
+                case 'O': return retType(TOKEN_FORMAT_STRING, start, 13);
+            }
+        };
+        case 'G': {
+            switch (*start[1]) {
+                case 'L': return retType(TOKEN_GLYPH, start, 5);
+                case 'R': {
+                    if (*start[7] == '_')
+                        return retType(TOKEN_GREATER_EQUALS, start, 14);
+                    return retType(TOKEN_GREATER, start, 7);
+                };
+            }
+        };
+        case 'I': {
+            switch (*start[1]) {
+                case 'D': return retType(TOKEN_IDENTIFIER, start, 10);
+                case 'F': return retType(TOKEN_IF, start, 2);
+                case 'N': {
+                    if (*start[3] == 'T')
+                        return retType(TOKEN_INTEGER, start, 7);
+                    return retType(TOKEN_IN, start, 2);
+                };
+            }
+        };
+        case 'L': {
+            switch (*start[1]) {
+                case 'F': {
+                    switch (*start[9]) {
+                        case 'N': return retType(TOKEN_LEFT_PAREN, start, 10);
+                        case 'K': return retType(TOKEN_LEFT_BRACKET, start, 12);
+                        case 'E': return retType(TOKEN_LEFT_BRACE, start, 10);
+                    }
+                };
+                case 'S': {
+                    if (*start[4] == '_')
+                        return retType(TOKEN_LESS_EQUALS, start, 11);
+                    return retType(TOKEN_LESS, start, 4);
+                };
+            }
+        };
+        case 'M': {
+            switch (*start[1]) {
+                case 'A': return retType(TOKEN_MATCH, start, 5);
+                case 'I': return retType(TOKEN_MINUS, start, 5);
+            }
+        };
+        case 'O': return retType(TOKEN_OR, start, 2);
+        case 'P': {
+            switch (*start[1]) {
+                case 'I': return retType(TOKEN_PIPE, start, 4);
+                case 'L': return retType(TOKEN_PLUS, start, 4);
+                case 'E': return retType(TOKEN_PERCENT, start, 7);
+            }
+        };
+        case 'Q': return retType(TOKEN_QUESTION, start, 8);
+        case 'R': {
+            switch (*start[1]) {
+                case 'E': {
+                    if (*start[2] == 'C')
+                        return retType(TOKEN_RECEIVE, start, 7);
+
+                    return retType(TOKEN_RETURN, start, 6);
+                };
+                case 'I': {
+                    switch (*start[10]) {
+                        case 'N': return retType(TOKEN_RIGHT_PAREN, start, 11);
+                        case 'K': return retType(TOKEN_RIGHT_BRACKET, start, 13);
+                        case 'E': return retType(TOKEN_RIGHT_BRACE, start, 11);
+                    }
+                };
+                case 'O': return retType(TOKEN_ROCKET, start, 6);
+            }
+        };
+        case 'S': {
+            switch (*start[1]) {
+                case 'E': return retType(TOKEN_SEMICOLON, start, 9);
+                case 'L': return retType(TOKEN_SLASH, start, 5);
+                case 'O': return retType(TOKEN_SOF, start, 3);
+                case 'P': return retType(TOKEN_SPIGOT, start, 6);
+                case 'T': {
+                    switch (*start[2]) {
+                        case 'A': return retType(TOKEN_STAR, start, 4);
+                        case 'R': return retType(TOKEN_STRING, start, 6);
+                    }
+                };
+            }
+        };
+        case 'T': {
+            switch (*start[1]) {
+                case 'R': return retType(TOKEN_TRUE, start, 4);
+                case 'H': return retType(TOKEN_THEN, start, 4);
+            }
+        };
+        case 'U': {
+            switch (*start[1]) {
+                case 'N': return retType(TOKEN_UNIT, start, 4);
+                case 'C': return retType(TOKEN_UCARET, start, 6);
+            }
+        };
+        case 'W': return retType(TOKEN_WILDCARD, start, 8);
+        default: return TOKEN_ERROR;
+    }
+}
+
+void consumeWhitespace(const char **source) {
+    for (;;) {
+        switch (**source) {
+            case ' ':
+            case '\n':
+            case '\t':
+            case '\r':
+                (*source)++;
+                break;
+            default: return;
+        }
+    }
+}
+
+void serialiseToken(FILE* file, Token* token) {
+    fprintf(file, "\"token\": { ");
+    if (token->start == NULL) {
+        fprintf(file, "\"content\": \"null\"");
+    } else if (token->type == TOKEN_STRING || token->type == TOKEN_FORMAT_STRING) {
+        fprintf(file, "\"content\": %.*s", token->length, token->start);
+    } else {
+        fprintf(file, "\"content\": \"%.*s\"", token->length, token->start);
+    }
+
+    fprintf(file, ", \"type\": \"%s\"", tokenName(token->type));
+
+    fprintf(file, ", \"line\": %d", token->line);
+
+    fprintf(file, " }");
+}
+
+void serialiseLiteral(FILE* file, LiteralExpr* literal) {
+    fprintf(file, "{ \"type\": \"LITERAL\", ");
+    serialiseToken(file, &literal->token);
+    fprintf(file, " }");
+}
+
+void serialiseUnary(FILE* file, UnaryExpr* unary) {
+    fprintf(file, "{ \"type\": \"UNARY\", ");
+    serialiseToken(file, &unary->token);
+
+    fprintf(file, ", \"operand\": ");
+    serialiseExpr(file, unary->operand);
+    fprintf(file, " }");
+}
+
+void serialiseBinary(FILE* file, BinaryExpr* binary) {
+    fprintf(file, "{ \"type\": \"BINARY\", ");
+    serialiseToken(file, &binary->token);
+
+    fprintf(file, ", \"left\": ");
+    serialiseExpr(file, binary->left);
+    fprintf(file, ", ");
+
+    fprintf(file, "\"right\": ");
+    serialiseExpr(file, binary->right);
+    fprintf(file, " }");
+}
+
+void serialiseTernary(FILE* file, TernaryExpr* ternary) {
+    fprintf(file, "{ \"type\": \"TERNARY\", ");
+    serialiseToken(file, &ternary->token);
+
+    fprintf(file, ", \"pivot\": ");
+    serialiseExpr(file, ternary->pivot);
+    fprintf(file, ", ");
+
+    fprintf(file, "\"left\": ");
+    serialiseExpr(file, ternary->left);
+    fprintf(file, ", ");
+
+    fprintf(file, "\"right\": ");
+    serialiseExpr(file, ternary->right);
+    fprintf(file, " }");
+}
+
+void serialiseBlock(FILE* file, BlockExpr* block) {
+    fprintf(file, "{ \"type\": \"BLOCK\", ");
+    serialiseToken(file, &block->token);
+
+    fprintf(file, ", \"subexprs\": [ ");
+    for (int i = 0; i < block->count; i++) {
+        if (i > 0)
+            fprintf(file, ", ");
+        serialiseExpr(file, block->subexprs[i]);
+    }
+    fprintf(file, " ] }");
+}
+
+// Deserialise expr type and call corresponding function to deserialise the rest
+void serialiseExpr(FILE* file, Expr* expression) {
+    switch (expression->type) {
+        case EXPR_LITERAL: serialiseLiteral(file, (LiteralExpr*)expression); break;
+        case EXPR_UNARY: serialiseUnary(file, (UnaryExpr*)expression); break;
+        case EXPR_BINARY: serialiseBinary(file, (BinaryExpr*)expression); break;
+        case EXPR_TERNARY: serialiseTernary(file, (TernaryExpr*)expression); break;
+        case EXPR_BLOCK: serialiseBlock(file, (BlockExpr*)expression); break;
+        default: break;
+    }
+}
+
+void deserialiseJSON(ProgramTree *tree, Compiler* compiler, const char *source) {
+    initTree(tree, compiler, source);
+
+}
+
 /*
 +---------------------------+
 | Serialising          ^^^^ |
 +---------------------------+
-| Pre-Compilation Step vvvv |
-+---------------------------+
-*/
-
-
-/*
-static Expr* foldExpr(Expr* expression) {
-    switch (expression->type) {
-    case EXPR_LITERAL:  return NULL;
-    case EXPR_UNARY:    return NULL;
-    case EXPR_BINARY:   return NULL;
-    case EXPR_TERNARY:  return NULL;
-    case EXPR_BLOCK:    return NULL;
-    }
-}
-
-static void investigateExprs(ProgramTree* tree) {
-    for (size_t i = 0; i < tree->program->count; ++i) {
-        foldExpr(tree->program->subexprs[i]);
-    }
-}
-
-void debugOptimisation(const char* source) {
-    ProgramTree PTree;
-    ProgramTree* tree = &PTree;
-
-    createTree(tree, source);
-
-    investigateExprs(tree);
-}
-*/
-
-/*
-
-Okie, so, the idea is that we call investigateExprs() which iterates over
-ProgramTree.program.subexprs, it calls all of the different optimisation
-functions which call themselves recursively to do their jobs.
-
 */
