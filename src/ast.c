@@ -1065,12 +1065,11 @@ TokenType retType(TokenType type, const char **start, size_t i) {
 
 TokenType tTypeFromName(const char **start) {
    switch (*start[0]) {
-       //alphabetise and break down into tries
         case 'A': return retType(TOKEN_AND, start, 3);
         case 'B': {
             if (*start[4] == '_')
-                return TOKEN_BANG_EQUALS;
-            return TOKEN_BANG;
+                return retType(TOKEN_BANG_EQUALS, start, 11);
+            return retType(TOKEN_BANG, start, 4);
         };
         case 'C': {
             switch (*start[1]) {
@@ -1082,9 +1081,11 @@ TokenType tTypeFromName(const char **start) {
                         case 'N': return retType(TOKEN_CONS, start, 4);
                         case 'M': return retType(TOKEN_COMMA, start, 5);
                         case 'L': return retType(TOKEN_COLON, start, 5);
+                        default: return TOKEN_ERROR;
                     }
                 };
                 case 'U': return retType(TOKEN_CUSTOM, start, 6);
+                default: return TOKEN_ERROR;
             }
         };
         case 'D': {
@@ -1096,6 +1097,7 @@ TokenType tTypeFromName(const char **start) {
                     return retType(TOKEN_DOT, start, 3);
                 };
                 case 'L': return retType(TOKEN_DOLLAR, start, 6);
+                default: return TOKEN_ERROR;
             }
         };
         case 'E': {
@@ -1109,6 +1111,7 @@ TokenType tTypeFromName(const char **start) {
                     return retType(TOKEN_EQUALS, start, 6);
                 };
                 case 'L': return retType(TOKEN_ELSE, start, 4);
+                default: return TOKEN_ERROR;
             }
         };
         case 'F': {
@@ -1116,6 +1119,7 @@ TokenType tTypeFromName(const char **start) {
                 case 'A': return retType(TOKEN_FALSE, start, 5);
                 case 'L': return retType(TOKEN_FLOAT, start, 5);
                 case 'O': return retType(TOKEN_FORMAT_STRING, start, 13);
+                default: return TOKEN_ERROR;
             }
         };
         case 'G': {
@@ -1126,6 +1130,7 @@ TokenType tTypeFromName(const char **start) {
                         return retType(TOKEN_GREATER_EQUALS, start, 14);
                     return retType(TOKEN_GREATER, start, 7);
                 };
+                default: return TOKEN_ERROR;
             }
         };
         case 'I': {
@@ -1137,6 +1142,7 @@ TokenType tTypeFromName(const char **start) {
                         return retType(TOKEN_INTEGER, start, 7);
                     return retType(TOKEN_IN, start, 2);
                 };
+                default: return TOKEN_ERROR;
             }
         };
         case 'L': {
@@ -1146,6 +1152,7 @@ TokenType tTypeFromName(const char **start) {
                         case 'N': return retType(TOKEN_LEFT_PAREN, start, 10);
                         case 'K': return retType(TOKEN_LEFT_BRACKET, start, 12);
                         case 'E': return retType(TOKEN_LEFT_BRACE, start, 10);
+                        default: return TOKEN_ERROR;
                     }
                 };
                 case 'S': {
@@ -1153,12 +1160,14 @@ TokenType tTypeFromName(const char **start) {
                         return retType(TOKEN_LESS_EQUALS, start, 11);
                     return retType(TOKEN_LESS, start, 4);
                 };
+                default: return TOKEN_ERROR;
             }
         };
         case 'M': {
             switch (*start[1]) {
                 case 'A': return retType(TOKEN_MATCH, start, 5);
                 case 'I': return retType(TOKEN_MINUS, start, 5);
+                default: return TOKEN_ERROR;
             }
         };
         case 'O': return retType(TOKEN_OR, start, 2);
@@ -1167,6 +1176,7 @@ TokenType tTypeFromName(const char **start) {
                 case 'I': return retType(TOKEN_PIPE, start, 4);
                 case 'L': return retType(TOKEN_PLUS, start, 4);
                 case 'E': return retType(TOKEN_PERCENT, start, 7);
+                default: return TOKEN_ERROR;
             }
         };
         case 'Q': return retType(TOKEN_QUESTION, start, 8);
@@ -1183,9 +1193,11 @@ TokenType tTypeFromName(const char **start) {
                         case 'N': return retType(TOKEN_RIGHT_PAREN, start, 11);
                         case 'K': return retType(TOKEN_RIGHT_BRACKET, start, 13);
                         case 'E': return retType(TOKEN_RIGHT_BRACE, start, 11);
+                        default: return TOKEN_ERROR;
                     }
                 };
                 case 'O': return retType(TOKEN_ROCKET, start, 6);
+                default: return TOKEN_ERROR;
             }
         };
         case 'S': {
@@ -1198,20 +1210,24 @@ TokenType tTypeFromName(const char **start) {
                     switch (*start[2]) {
                         case 'A': return retType(TOKEN_STAR, start, 4);
                         case 'R': return retType(TOKEN_STRING, start, 6);
+                        default: return TOKEN_ERROR;
                     }
                 };
+                default: return TOKEN_ERROR;
             }
         };
         case 'T': {
             switch (*start[1]) {
                 case 'R': return retType(TOKEN_TRUE, start, 4);
                 case 'H': return retType(TOKEN_THEN, start, 4);
+                default: return TOKEN_ERROR;
             }
         };
         case 'U': {
             switch (*start[1]) {
                 case 'N': return retType(TOKEN_UNIT, start, 4);
                 case 'C': return retType(TOKEN_UCARET, start, 6);
+                default: return TOKEN_ERROR;
             }
         };
         case 'W': return retType(TOKEN_WILDCARD, start, 8);
