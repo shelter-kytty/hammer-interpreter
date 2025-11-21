@@ -7,7 +7,7 @@ fibNaive : n = {
 
 a1 = clock()
 
-printfn("{0}" ; fibNaive(40))
+printfn("{0}" ; fibNaive(20))
 
 b1 = clock()
 

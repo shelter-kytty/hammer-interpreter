@@ -1,0 +1,10 @@
+
+// run -o or -j ./examples/library.hm to build me !
+
+Add : L R = L + R
+
+Sub : L R = L - R
+
+constant = 1.09e+19
+
+table = [[1;0];[0;1]]

@@ -2143,6 +2143,20 @@ InterpretResult interpret(VM* vm, const char* source) {
     return run(vm);
 }
 
+InterpretResult interpretPrecompiled(VM* vm, const char* source) {
+    vm->isActive = false;
+    ObjFunction* script = recompile(source, vm);
+
+    if (script == NULL) {
+        return INTERPRET_COMPILATION_ERROR;
+    }
+
+    vm->frames[vm->frameCount++] = (CallFrame){script, NULL, script->body.code, vm->stack, false};
+    vm->isActive = true;
+
+    return run(vm);
+}
+
 InterpretResult repl() {
     VM vm;
     initVM(&vm);

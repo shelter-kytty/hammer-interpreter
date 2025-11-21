@@ -70,17 +70,20 @@ const char* tokenName(TokenType type) {
 
 void serialiseToken(FILE* file, Token* token) {
     fprintf(file, "\"token\": { ");
-    if (token->start == NULL) {
-        fprintf(file, "\"content\": \"null\"");
-    } else if (token->type == TOKEN_STRING || token->type == TOKEN_FORMAT_STRING) {
-        fprintf(file, "\"content\": %.*s", token->length, token->start);
-    } else {
-        fprintf(file, "\"content\": \"%.*s\"", token->length, token->start);
-    }
 
-    fprintf(file, ", \"type\": \"%s\"", tokenName(token->type));
+    fprintf(file, "\"type\": \"%s\"", tokenName(token->type));
 
     fprintf(file, ", \"line\": %d", token->line);
+
+    if (token->start == NULL) {
+        fprintf(file, ", \"content\": null");
+    } else if (token->type == TOKEN_STRING) {
+        fprintf(file, ", \"content\": %.*s", token->length, token->start);
+    } else if (token->type == TOKEN_FORMAT_STRING) {
+        fprintf(file, ", \"content\": %.*s", token->length-1, token->start+1);
+    } else {
+        fprintf(file, ", \"content\": \"%.*s\"", token->length, token->start);
+    }
 
     fprintf(file, " }");
 }

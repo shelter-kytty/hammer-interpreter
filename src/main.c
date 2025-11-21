@@ -1,3 +1,4 @@
+#include <asm-generic/errno-base.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +17,7 @@ static char* readFile(const char* path);
 void say_error(const char* msg, int n);
 char *convertPath(const char *path, const char *ftype);
 
-const char* argp_program_version = "hammer v0.1.3-alpha";
+const char* argp_program_version = "hammer v0.2.0-alpha";
 const char* argp_program_bug_address = "https://github.com/shelter-kytty/hammer-interpreter/issues";
 static char doc[] = "An interpreter for the programming language Hammer.";
 static struct argp_option options[] = {
@@ -75,9 +76,6 @@ int main(int argc, char* argv[])
 
     int result = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, 0, &input);
 
-    for (int i = 0; i < input.linkn; i++)
-        printf("%s\n", input.links[i]);
-
     if (result != 0) {
         say_error("Error when parsing args", result);
     } else {
@@ -91,9 +89,23 @@ int main(int argc, char* argv[])
                 break;
             }
             case INTERPRET_MODE: {
-                char *source = readFile(input.arg);
                 VM vm; initVM(&vm);
 
+                for (int i = 0; i < input.linkn; i++) {
+                    char * js = readFile(input.links[i]);
+                    InterpretResult result = interpretPrecompiled(&vm, js);
+
+                    if (result != INTERPRET_OK) {
+                        fprintf(stderr, "Error while linking '%s'", input.links[i]);
+                        freeVM(&vm);
+                        free(js);
+                        return EINVAL;
+                    }
+
+                    free(js);
+                }
+
+                char *source = readFile(input.arg);
                 interpret(&vm, source);
 
                 freeVM(&vm);
