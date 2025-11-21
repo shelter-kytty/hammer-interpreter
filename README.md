@@ -6,11 +6,21 @@ The interpreter is, at its core, an implementation of the intepreter for CLox, a
 ---
 
 ## Building Hammer
-Hammer can be built with `make` if you have gcc in your `$PATH`, it has targets for release and debug; for a first build run:
+Hammer can be built with `make` using `gcc` on linux. The main program follows C11 for decent compatibility.
+
+To download and build Hammer, run the following:
+
 ```
-$ make all
+$ git clone https://github.com/shelter-kytty/hammer-interpreter.git <dir>
+$ cd <dir>
+$ make prep
+$ make release
 ```
-To guarantee the existence of the build directories.
+
+This will leave `hmc` in the release subdirectory of build.
+
+You can also run the debug target for additional information during compilation and execution, which can be tuned with the debug flags found in `common.h`. Other options that alter the interpreter's behaviour are available there.
+
 
 ## Whats different?
 In addition, Hammer contains changes such as:
@@ -35,12 +45,12 @@ Special thankyous and acknowledgements to:
 Initial version!
 Hammer is now in a state where Im confident about working on it further, adding more complex features and and libraries.
 
-## v0.2.0 (working on)
+## v0.2.0
 - Output AST as JSON
   - Expand CLI parsing to this end
 - Read JSON AST from file to be run
 
-## v0.3.0
+## v0.3.0 (working on)
 - Separate nativeFNs out into libraries and add `include` imperatives/similar to include them in projects
   - Implement namespaces/objects and syntax for them to this end
   - Add the ability to `include` other hammer source files

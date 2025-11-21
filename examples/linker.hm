@@ -1,0 +1,10 @@
+
+// run me with -l ./examples/library.hm.json !
+
+printfn("{0}" Add(1 2))
+
+printfn("{0}" Sub(1 2))
+
+printfn("{0}" constant)
+
+printfn("{0}" table)

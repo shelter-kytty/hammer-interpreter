@@ -52,7 +52,7 @@ typedef enum {
 //#define OPTION_RECURSIVE_TRUTHINESS
 #define OPTION_RECURSIVE_PRINTING
 
-/* Lists/maps */
+/* Behaviour */
 #define OPTION_ONE_INDEXED
 // <---------------- USER OPTIONS
 
