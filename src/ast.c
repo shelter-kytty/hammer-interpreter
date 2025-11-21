@@ -1258,7 +1258,7 @@ Token deserialiseToken(ProgramTree *tree, const cJSON *js) {
             strncpy(new + 2, content->valuestring, len-1);
             new[0] = 'f';
             new[1] = '"';
-            new[len] = '"';
+            new[len - 1] = '"';
 
             token.start = copyString(tree->compiler->vm, new, len)->chars;
             token.length = len;
@@ -1268,12 +1268,15 @@ Token deserialiseToken(ProgramTree *tree, const cJSON *js) {
             char *new = (char*)malloc(len);
             strncpy(new + 1, content->valuestring, len-1);
             new[0] = '"';
-            new[len] = '"';
+            new[len - 1] = '"';
 
             token.start = copyString(tree->compiler->vm, new, len)->chars;
             token.length = len;
             free(new);
-        } else {
+        } else if (strlen(content->valuestring) == 0) {
+            token.length = 0;
+            token.start = NULL;
+        } else  {
             size_t len = strlen(content->valuestring);
             char *new = (char*)malloc(len);
             strncpy(new, content->valuestring, len);
@@ -1288,6 +1291,7 @@ Token deserialiseToken(ProgramTree *tree, const cJSON *js) {
 }
 
 Expr* deserialiseLiteral(ProgramTree *tree, const cJSON *js) {
+    printf("Deserialising LITERAL\n");
     cJSON *tk = cJSON_GetObjectItem(js, "token");
     Token token = deserialiseToken(tree, tk);
 
@@ -1297,6 +1301,7 @@ Expr* deserialiseLiteral(ProgramTree *tree, const cJSON *js) {
 }
 
 Expr* deserialiseUnary(ProgramTree *tree, const cJSON *js) {
+    printf("Deserialising UNARY\n");
     cJSON *tk = cJSON_GetObjectItem(js, "token");
     Token token = deserialiseToken(tree, tk);
 
@@ -1308,6 +1313,7 @@ Expr* deserialiseUnary(ProgramTree *tree, const cJSON *js) {
 }
 
 Expr* deserialiseBinary(ProgramTree *tree, const cJSON *js) {
+    printf("Deserialising BINARY\n");
     cJSON *tk = cJSON_GetObjectItem(js, "token");
     Token token = deserialiseToken(tree, tk);
 
@@ -1321,6 +1327,7 @@ Expr* deserialiseBinary(ProgramTree *tree, const cJSON *js) {
 }
 
 Expr* deserialiseTernary(ProgramTree *tree, const cJSON *js) {
+    printf("Deserialising TERNARY\n");
     cJSON *tk = cJSON_GetObjectItem(js, "token");
     Token token = deserialiseToken(tree, tk);
 
@@ -1336,15 +1343,19 @@ Expr* deserialiseTernary(ProgramTree *tree, const cJSON *js) {
 }
 
 Expr* deserialiseBlock(ProgramTree *tree, const cJSON *js) {
+    printf("Deserialising BLOCK\n");
     cJSON *tk = cJSON_GetObjectItem(js, "token");
     Token token = deserialiseToken(tree, tk);
 
     BlockExpr* block = Block(tree, token);
 
-    const cJSON *next = NULL;
-    cJSON_ArrayForEach(next, js)
+    cJSON *subexpressions = cJSON_GetObjectItem(js, "subexprs");
+
+    for (const cJSON *tbd = (subexpressions != NULL ? (subexpressions)->child : NULL); tbd != NULL; tbd = tbd->next)
     {
-        Expr* new = deserialiseExpr(tree, next);
+        printf("%s\n", cJSON_Print(subexpressions));
+
+        Expr* new = deserialiseExpr(tree, tbd);
 
         writeExpr(block, new);
     }
@@ -1355,6 +1366,14 @@ Expr* deserialiseBlock(ProgramTree *tree, const cJSON *js) {
 // Deserialise expr type and call corresponding function to deserialise the rest
 Expr *deserialiseExpr(ProgramTree *tree, const cJSON *js) {
     cJSON *type_param = cJSON_GetObjectItem(js, "type");
+
+    if (type_param == NULL) {
+        fprintf(stderr, "Error while deserialising JSON\n");
+        Token token = deserialiseToken(tree, js);
+        errorAt(tree, &token, "Could not read type param while deserialising\n");
+        return NULL;
+    }
+
     ExprType type = exprTypeFromName(type_param->valuestring);
 
     switch (type) {
@@ -1366,6 +1385,7 @@ Expr *deserialiseExpr(ProgramTree *tree, const cJSON *js) {
         default: break;
     }
 
+    fprintf(stderr, "Error while deserialising JSON\n");
     Token token = deserialiseToken(tree, js);
     errorAt(tree, &token, "Could not recognise expression type while deserialising\n");
     return NULL;
