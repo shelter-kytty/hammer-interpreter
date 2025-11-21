@@ -1267,11 +1267,29 @@ ObjFunction* recompile(const char* source, VM* vm) {
     deserialiseJSON(&compiler, &tree, source);
 
     if (tree.hadError) {
-        fprintf(stderr, "Encountered error in parsingn");
+        fprintf(stderr, "Encountered error in parsing\n");
+        freeTree(&tree);
+        return NULL;
+    }
+
+    compiler.tree = &tree;
+
+    for (size_t i = 0; i < tree.program->count - 1; i++) {
+        Expr* next = compiler.tree->program->subexprs[i];
+
+        compileExpr(&compiler, next);
+
+        emitByte(&compiler, OP_POP, getLastLine(&compiler));
+    }
+
+    compileExpr(&compiler, compiler.tree->program->subexprs[compiler.tree->program->count - 1]);
+
+    if (tree.hadError) {
+        fprintf(stderr, "Encountered error in compiling\n");
         freeTree(&tree);
         return NULL;
     }
 
     freeTree(&tree);
-    return NULL;
+    return endCompiler(&compiler);
 }
