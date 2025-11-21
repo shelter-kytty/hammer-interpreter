@@ -75,8 +75,20 @@ int main(int argc, char* argv[])
 
     int result = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, 0, &input);
 
-    for (int i = 0; i < input.linkn; i++)
+    for (int i = 0; i < input.linkn; i++) {
         printf("%s\n", input.links[i]);
+        VM vm; initVM(&vm);
+
+        char *source = readFile(input.links[i]);
+
+        interpretPrecompiled(&vm, source);
+
+        free(source);
+        freeVM(&vm);
+    }
+
+    if (input.linkn > 0)
+            return 0;
 
     if (result != 0) {
         say_error("Error when parsing args", result);

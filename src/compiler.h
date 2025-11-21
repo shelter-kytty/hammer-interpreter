@@ -51,5 +51,6 @@ void markCompiler(VM* vm);
 void initCompiler(Compiler* compiler, VM* vm, FunctionType type, ObjString* name);
 ObjFunction* endCompiler(Compiler* compiler);
 ObjFunction* compile(const char* source, VM* vm);
+ObjFunction* recompile(const char* source, VM* vm);
 
 #endif

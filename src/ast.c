@@ -1050,166 +1050,170 @@ void serialiseAST(FILE* file, const char* source) {
     freeVM(&vm);
 }
 
-size_t countUntil(const char **src, char end) {
-    for (size_t i = 0; *src[i] != '\0'; i++) {
-        if (*src[i] == end) return i;
+#include "cJSON/cJSON.h"
+
+Expr *deserialiseExpr(ProgramTree *tree, const cJSON *js);
+
+ExprType exprTypeFromName(const char *name) {
+    printf("%s\n", name);
+    switch (name[2]) {
+        case 'T': return EXPR_LITERAL;
+        case 'A': return EXPR_UNARY;
+        case 'N': return EXPR_BINARY;
+        case 'R': return EXPR_TERNARY;
+        case 'O': return EXPR_BLOCK;
+        default: return (ExprType)255;
     }
-
-    return 0;
 }
 
-TokenType retType(TokenType type, const char **start, size_t i) {
-    (*start) += i;
-    return type;
-}
-
-TokenType tTypeFromName(const char **start) {
-   switch (*start[0]) {
-        case 'A': return retType(TOKEN_AND, start, 3);
+TokenType tTypeFromName(const char *start) {
+    printf("%s\n", start);
+    switch (start[0]) {
+       case 'A': return TOKEN_AND;
         case 'B': {
-            if (*start[4] == '_')
-                return retType(TOKEN_BANG_EQUALS, start, 11);
-            return retType(TOKEN_BANG, start, 4);
+            if (start[4] == '_')
+                return TOKEN_BANG_EQUALS;
+            return TOKEN_BANG;
         };
         case 'C': {
-            switch (*start[1]) {
-                case 'A': return retType(TOKEN_CAR, start, 3);
-                case 'D': return retType(TOKEN_CDR, start, 3);
-                case 'H': return retType(TOKEN_CHAR, start, 4);
+            switch (start[1]) {
+                case 'A': return TOKEN_CAR;
+                case 'D': return TOKEN_CDR;
+                case 'H': return TOKEN_CHAR;
                 case 'O': {
-                    switch(*start[2]) {
-                        case 'N': return retType(TOKEN_CONS, start, 4);
-                        case 'M': return retType(TOKEN_COMMA, start, 5);
-                        case 'L': return retType(TOKEN_COLON, start, 5);
+                    switch(start[2]) {
+                        case 'N': return TOKEN_CONS;
+                        case 'M': return TOKEN_COMMA;
+                        case 'L': return TOKEN_COLON;
                         default: return TOKEN_ERROR;
                     }
                 };
-                case 'U': return retType(TOKEN_CUSTOM, start, 6);
+                case 'U': return TOKEN_CUSTOM;
                 default: return TOKEN_ERROR;
             }
         };
         case 'D': {
-            switch (*start[2]) {
+            switch (start[2]) {
                 case 'T': {
-                    if (*start[4] == '_')
-                        return retType(TOKEN_DOT_DOT, start, 7);
+                    if (start[3] == '_')
+                        return TOKEN_DOT_DOT;
 
-                    return retType(TOKEN_DOT, start, 3);
+                    return TOKEN_DOT;
                 };
-                case 'L': return retType(TOKEN_DOLLAR, start, 6);
+                case 'L': return TOKEN_DOLLAR;
                 default: return TOKEN_ERROR;
             }
         };
         case 'E': {
-            switch (*start[1]) {
-                case 'O': return retType(TOKEN_EOF, start, 3);
-                case 'R': return retType(TOKEN_ERROR, start, 5);
+            switch (start[1]) {
+                case 'O': return TOKEN_EOF;
+                case 'R': return TOKEN_ERROR;
                 case 'Q': {
-                    if (*start[6] == '_')
-                        return retType(TOKEN_EQUALS_EQUALS, start, 13);
+                    if (start[6] == '_')
+                        return TOKEN_EQUALS_EQUALS;
 
-                    return retType(TOKEN_EQUALS, start, 6);
+                    return TOKEN_EQUALS;
                 };
-                case 'L': return retType(TOKEN_ELSE, start, 4);
+                case 'L': return TOKEN_ELSE;
                 default: return TOKEN_ERROR;
             }
         };
         case 'F': {
-            switch (*start[1]) {
-                case 'A': return retType(TOKEN_FALSE, start, 5);
-                case 'L': return retType(TOKEN_FLOAT, start, 5);
-                case 'O': return retType(TOKEN_FORMAT_STRING, start, 13);
+            switch (start[1]) {
+                case 'A': return TOKEN_FALSE;
+                case 'L': return TOKEN_FLOAT;
+                case 'O': return TOKEN_FORMAT_STRING;
                 default: return TOKEN_ERROR;
             }
         };
         case 'G': {
-            switch (*start[1]) {
-                case 'L': return retType(TOKEN_GLYPH, start, 5);
+            switch (start[1]) {
+                case 'L': return TOKEN_GLYPH;
                 case 'R': {
-                    if (*start[7] == '_')
-                        return retType(TOKEN_GREATER_EQUALS, start, 14);
-                    return retType(TOKEN_GREATER, start, 7);
+                    if (start[7] == '_')
+                        return TOKEN_GREATER_EQUALS;
+                    return TOKEN_GREATER;
                 };
                 default: return TOKEN_ERROR;
             }
         };
         case 'I': {
-            switch (*start[1]) {
-                case 'D': return retType(TOKEN_IDENTIFIER, start, 10);
-                case 'F': return retType(TOKEN_IF, start, 2);
+            switch (start[1]) {
+                case 'D': return TOKEN_IDENTIFIER;
+                case 'F': return TOKEN_IF;
                 case 'N': {
-                    if (*start[3] == 'T')
-                        return retType(TOKEN_INTEGER, start, 7);
-                    return retType(TOKEN_IN, start, 2);
+                    if (start[2] == 'T')
+                        return TOKEN_INTEGER;
+                    return TOKEN_IN;
                 };
                 default: return TOKEN_ERROR;
             }
         };
         case 'L': {
-            switch (*start[1]) {
+            switch (start[1]) {
                 case 'F': {
-                    switch (*start[9]) {
-                        case 'N': return retType(TOKEN_LEFT_PAREN, start, 10);
-                        case 'K': return retType(TOKEN_LEFT_BRACKET, start, 12);
-                        case 'E': return retType(TOKEN_LEFT_BRACE, start, 10);
+                    switch (start[9]) {
+                        case 'N': return TOKEN_LEFT_PAREN;
+                        case 'K': return TOKEN_LEFT_BRACKET;
+                        case 'E': return TOKEN_LEFT_BRACE;
                         default: return TOKEN_ERROR;
                     }
                 };
                 case 'S': {
-                    if (*start[4] == '_')
-                        return retType(TOKEN_LESS_EQUALS, start, 11);
-                    return retType(TOKEN_LESS, start, 4);
+                    if (start[4] == '_')
+                        return TOKEN_LESS_EQUALS;
+                    return TOKEN_LESS;
                 };
                 default: return TOKEN_ERROR;
             }
         };
         case 'M': {
-            switch (*start[1]) {
-                case 'A': return retType(TOKEN_MATCH, start, 5);
-                case 'I': return retType(TOKEN_MINUS, start, 5);
+            switch (start[1]) {
+                case 'A': return TOKEN_MATCH;
+                case 'I': return TOKEN_MINUS;
                 default: return TOKEN_ERROR;
             }
         };
-        case 'O': return retType(TOKEN_OR, start, 2);
+        case 'O': return TOKEN_OR;
         case 'P': {
-            switch (*start[1]) {
-                case 'I': return retType(TOKEN_PIPE, start, 4);
-                case 'L': return retType(TOKEN_PLUS, start, 4);
-                case 'E': return retType(TOKEN_PERCENT, start, 7);
+            switch (start[1]) {
+                case 'I': return TOKEN_PIPE;
+                case 'L': return TOKEN_PLUS;
+                case 'E': return TOKEN_PERCENT;
                 default: return TOKEN_ERROR;
             }
         };
-        case 'Q': return retType(TOKEN_QUESTION, start, 8);
+        case 'Q': return TOKEN_QUESTION;
         case 'R': {
-            switch (*start[1]) {
+            switch (start[1]) {
                 case 'E': {
-                    if (*start[2] == 'C')
-                        return retType(TOKEN_RECEIVE, start, 7);
+                    if (start[2] == 'C')
+                        return TOKEN_RECEIVE;
 
-                    return retType(TOKEN_RETURN, start, 6);
+                    return TOKEN_RETURN;
                 };
                 case 'I': {
-                    switch (*start[10]) {
-                        case 'N': return retType(TOKEN_RIGHT_PAREN, start, 11);
-                        case 'K': return retType(TOKEN_RIGHT_BRACKET, start, 13);
-                        case 'E': return retType(TOKEN_RIGHT_BRACE, start, 11);
+                    switch (start[10]) {
+                        case 'N': return TOKEN_RIGHT_PAREN;
+                        case 'K': return TOKEN_RIGHT_BRACKET;
+                        case 'E': return TOKEN_RIGHT_BRACE;
                         default: return TOKEN_ERROR;
                     }
                 };
-                case 'O': return retType(TOKEN_ROCKET, start, 6);
+                case 'O': return TOKEN_ROCKET;
                 default: return TOKEN_ERROR;
             }
         };
         case 'S': {
-            switch (*start[1]) {
-                case 'E': return retType(TOKEN_SEMICOLON, start, 9);
-                case 'L': return retType(TOKEN_SLASH, start, 5);
-                case 'O': return retType(TOKEN_SOF, start, 3);
-                case 'P': return retType(TOKEN_SPIGOT, start, 6);
+            switch (start[1]) {
+                case 'E': return TOKEN_SEMICOLON;
+                case 'L': return TOKEN_SLASH;
+                case 'O': return TOKEN_SOF;
+                case 'P': return TOKEN_SPIGOT;
                 case 'T': {
-                    switch (*start[2]) {
-                        case 'A': return retType(TOKEN_STAR, start, 4);
-                        case 'R': return retType(TOKEN_STRING, start, 6);
+                    switch (start[2]) {
+                        case 'A': return TOKEN_STAR;
+                        case 'R': return TOKEN_STRING;
                         default: return TOKEN_ERROR;
                     }
                 };
@@ -1217,128 +1221,173 @@ TokenType tTypeFromName(const char **start) {
             }
         };
         case 'T': {
-            switch (*start[1]) {
-                case 'R': return retType(TOKEN_TRUE, start, 4);
-                case 'H': return retType(TOKEN_THEN, start, 4);
+            switch (start[1]) {
+                case 'R': return TOKEN_TRUE;
+                case 'H': return TOKEN_THEN;
                 default: return TOKEN_ERROR;
             }
         };
         case 'U': {
-            switch (*start[1]) {
-                case 'N': return retType(TOKEN_UNIT, start, 4);
-                case 'C': return retType(TOKEN_UCARET, start, 6);
+            switch (start[1]) {
+                case 'N': return TOKEN_UNIT;
+                case 'C': return TOKEN_UCARET;
                 default: return TOKEN_ERROR;
             }
         };
-        case 'W': return retType(TOKEN_WILDCARD, start, 8);
+        case 'W': return TOKEN_WILDCARD;
         default: return TOKEN_ERROR;
     }
 }
 
-void consumeWhitespace(const char **source) {
-    for (;;) {
-        switch (**source) {
-            case ' ':
-            case '\n':
-            case '\t':
-            case '\r':
-                (*source)++;
-                break;
-            default: return;
+Token deserialiseToken(ProgramTree *tree, const cJSON *js) {
+    Token token;
+
+    token.type = tTypeFromName(cJSON_GetObjectItem(js, "type")->valuestring);
+
+    token.line = cJSON_GetObjectItem(js, "line")->valueint;
+
+    cJSON *content = cJSON_GetObjectItem(js, "content");
+
+    if (cJSON_IsNull(content)) {
+        token.length = 0;
+        token.start = NULL;
+    } else if (cJSON_IsString(content)) {
+        if (token.type == TOKEN_FORMAT_STRING) {
+            size_t len = strlen(content->valuestring) + 3;
+            char *new = (char*)malloc(len);
+            strncpy(new + 2, content->valuestring, len-1);
+            new[0] = 'f';
+            new[1] = '"';
+            new[len] = '"';
+
+            token.start = copyString(tree->compiler->vm, new, len)->chars;
+            token.length = len;
+            free(new);
+        } else if (token.type == TOKEN_STRING) {
+            size_t len = strlen(content->valuestring) + 2;
+            char *new = (char*)malloc(len);
+            strncpy(new + 1, content->valuestring, len-1);
+            new[0] = '"';
+            new[len] = '"';
+
+            token.start = copyString(tree->compiler->vm, new, len)->chars;
+            token.length = len;
+            free(new);
+        } else {
+            size_t len = strlen(content->valuestring);
+            char *new = (char*)malloc(len);
+            strncpy(new, content->valuestring, len);
+
+            token.start = copyString(tree->compiler->vm, new, len)->chars;
+            token.length = len;
+            free(new);
         }
     }
+
+    return token;
 }
 
-void serialiseToken(FILE* file, Token* token) {
-    fprintf(file, "\"token\": { ");
-    if (token->start == NULL) {
-        fprintf(file, "\"content\": \"null\"");
-    } else if (token->type == TOKEN_STRING || token->type == TOKEN_FORMAT_STRING) {
-        fprintf(file, "\"content\": %.*s", token->length, token->start);
-    } else {
-        fprintf(file, "\"content\": \"%.*s\"", token->length, token->start);
+Expr* deserialiseLiteral(ProgramTree *tree, const cJSON *js) {
+    cJSON *tk = cJSON_GetObjectItem(js, "token");
+    Token token = deserialiseToken(tree, tk);
+
+    LiteralExpr *literal = Literal(tree, token);
+
+    return (Expr*)literal;
+}
+
+Expr* deserialiseUnary(ProgramTree *tree, const cJSON *js) {
+    cJSON *tk = cJSON_GetObjectItem(js, "token");
+    Token token = deserialiseToken(tree, tk);
+
+    UnaryExpr *unary = Unary(tree, token);
+
+    unary->operand = deserialiseExpr(tree, cJSON_GetObjectItem(js, "expr"));
+
+    return (Expr*)unary;
+}
+
+Expr* deserialiseBinary(ProgramTree *tree, const cJSON *js) {
+    cJSON *tk = cJSON_GetObjectItem(js, "token");
+    Token token = deserialiseToken(tree, tk);
+
+    BinaryExpr *binary = Binary(tree, token);
+
+    binary->left = deserialiseExpr(tree, cJSON_GetObjectItem(js, "left"));
+
+    binary->right = deserialiseExpr(tree, cJSON_GetObjectItem(js, "right"));
+
+    return (Expr*)binary;
+}
+
+Expr* deserialiseTernary(ProgramTree *tree, const cJSON *js) {
+    cJSON *tk = cJSON_GetObjectItem(js, "token");
+    Token token = deserialiseToken(tree, tk);
+
+    TernaryExpr *ternary = Ternary(tree, token);
+
+    ternary->pivot = deserialiseExpr(tree, cJSON_GetObjectItem(js, "pivot"));
+
+    ternary->left = deserialiseExpr(tree, cJSON_GetObjectItem(js, "left"));
+
+    ternary->right = deserialiseExpr(tree, cJSON_GetObjectItem(js, "right"));
+
+    return (Expr*)ternary;
+}
+
+Expr* deserialiseBlock(ProgramTree *tree, const cJSON *js) {
+    cJSON *tk = cJSON_GetObjectItem(js, "token");
+    Token token = deserialiseToken(tree, tk);
+
+    BlockExpr* block = Block(tree, token);
+
+    const cJSON *next = NULL;
+    cJSON_ArrayForEach(next, js)
+    {
+        Expr* new = deserialiseExpr(tree, next);
+
+        writeExpr(block, new);
     }
 
-    fprintf(file, ", \"type\": \"%s\"", tokenName(token->type));
-
-    fprintf(file, ", \"line\": %d", token->line);
-
-    fprintf(file, " }");
-}
-
-void serialiseLiteral(FILE* file, LiteralExpr* literal) {
-    fprintf(file, "{ \"type\": \"LITERAL\", ");
-    serialiseToken(file, &literal->token);
-    fprintf(file, " }");
-}
-
-void serialiseUnary(FILE* file, UnaryExpr* unary) {
-    fprintf(file, "{ \"type\": \"UNARY\", ");
-    serialiseToken(file, &unary->token);
-
-    fprintf(file, ", \"operand\": ");
-    serialiseExpr(file, unary->operand);
-    fprintf(file, " }");
-}
-
-void serialiseBinary(FILE* file, BinaryExpr* binary) {
-    fprintf(file, "{ \"type\": \"BINARY\", ");
-    serialiseToken(file, &binary->token);
-
-    fprintf(file, ", \"left\": ");
-    serialiseExpr(file, binary->left);
-    fprintf(file, ", ");
-
-    fprintf(file, "\"right\": ");
-    serialiseExpr(file, binary->right);
-    fprintf(file, " }");
-}
-
-void serialiseTernary(FILE* file, TernaryExpr* ternary) {
-    fprintf(file, "{ \"type\": \"TERNARY\", ");
-    serialiseToken(file, &ternary->token);
-
-    fprintf(file, ", \"pivot\": ");
-    serialiseExpr(file, ternary->pivot);
-    fprintf(file, ", ");
-
-    fprintf(file, "\"left\": ");
-    serialiseExpr(file, ternary->left);
-    fprintf(file, ", ");
-
-    fprintf(file, "\"right\": ");
-    serialiseExpr(file, ternary->right);
-    fprintf(file, " }");
-}
-
-void serialiseBlock(FILE* file, BlockExpr* block) {
-    fprintf(file, "{ \"type\": \"BLOCK\", ");
-    serialiseToken(file, &block->token);
-
-    fprintf(file, ", \"subexprs\": [ ");
-    for (int i = 0; i < block->count; i++) {
-        if (i > 0)
-            fprintf(file, ", ");
-        serialiseExpr(file, block->subexprs[i]);
-    }
-    fprintf(file, " ] }");
+    return (Expr*)block;
 }
 
 // Deserialise expr type and call corresponding function to deserialise the rest
-void serialiseExpr(FILE* file, Expr* expression) {
-    switch (expression->type) {
-        case EXPR_LITERAL: serialiseLiteral(file, (LiteralExpr*)expression); break;
-        case EXPR_UNARY: serialiseUnary(file, (UnaryExpr*)expression); break;
-        case EXPR_BINARY: serialiseBinary(file, (BinaryExpr*)expression); break;
-        case EXPR_TERNARY: serialiseTernary(file, (TernaryExpr*)expression); break;
-        case EXPR_BLOCK: serialiseBlock(file, (BlockExpr*)expression); break;
+Expr *deserialiseExpr(ProgramTree *tree, const cJSON *js) {
+    cJSON *type_param = cJSON_GetObjectItem(js, "type");
+    ExprType type = exprTypeFromName(type_param->valuestring);
+
+    switch (type) {
+        case EXPR_LITERAL: return deserialiseLiteral(tree, js);
+        case EXPR_UNARY: return deserialiseUnary(tree, js);
+        case EXPR_BINARY: return deserialiseBinary(tree, js);
+        case EXPR_TERNARY: return deserialiseTernary(tree, js);
+        case EXPR_BLOCK: return deserialiseBlock(tree, js);
         default: break;
     }
+
+    Token token = deserialiseToken(tree, js);
+    errorAt(tree, &token, "Could not recognise expression type while deserialising\n");
+    return NULL;
 }
 
-void deserialiseJSON(ProgramTree *tree, Compiler* compiler, const char *source) {
+void deserialiseJSON(Compiler* compiler, ProgramTree* tree, const char* source) {
     initTree(tree, compiler, source);
 
+    cJSON *js = cJSON_Parse(source);
+
+    if (js == NULL) {
+        fprintf(stderr, "Failed to parse JSON\n");
+        return;
+    }
+
+    printf("%s\n", cJSON_Print(js));
+
+    printf("%s : %d %s\n", js->string, js->type, js->type & cJSON_Object ? "obj" : "other");
+
+    tree->program = (BlockExpr*)deserialiseExpr(tree, js);
+
+    cJSON_free(js);
 }
 
 /*

@@ -2143,6 +2143,16 @@ InterpretResult interpret(VM* vm, const char* source) {
     return run(vm);
 }
 
+InterpretResult interpretPrecompiled(VM* vm, const char* source) {
+    ObjFunction* script = recompile(source, vm);
+
+    if (script == NULL) {
+        return INTERPRET_COMPILATION_ERROR;
+    }
+
+    return INTERPRET_OK;
+}
+
 InterpretResult repl() {
     VM vm;
     initVM(&vm);

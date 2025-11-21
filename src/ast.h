@@ -81,6 +81,7 @@ void createTree(Compiler* compiler, ProgramTree* tree, const char* source);
 void initTree(ProgramTree* tree, Compiler* compiler, const char* source);
 void freeTree(ProgramTree* tree);
 void serialiseAST(FILE* file, const char *source);
+void deserialiseJSON(Compiler* compiler, ProgramTree* tree, const char* source);
 
 
 #endif

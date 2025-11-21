@@ -1258,3 +1258,20 @@ ObjFunction* compile(const char* source, VM* vm) {
     freeTree(&tree);
     return endCompiler(&compiler);
 }
+
+ObjFunction* recompile(const char* source, VM* vm) {
+    Compiler compiler;
+    initCompiler(&compiler, vm, FUN_SCRIPT, NULL);
+
+    ProgramTree tree;
+    deserialiseJSON(&compiler, &tree, source);
+
+    if (tree.hadError) {
+        fprintf(stderr, "Encountered error in parsingn");
+        freeTree(&tree);
+        return NULL;
+    }
+
+    freeTree(&tree);
+    return NULL;
+}

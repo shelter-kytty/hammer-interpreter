@@ -59,6 +59,7 @@ void initVM(VM* vm);
 void freeVM(VM* vm);
 InterpretResult interpret(VM* vm, const char* source);
 InterpretResult interpretTEST(const char* source);
+InterpretResult interpretPrecompiled(VM* vm, const char* source);
 InterpretResult repl();
 
 
