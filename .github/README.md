@@ -8,18 +8,17 @@ The interpreter is, at its core, an implementation of the intepreter for CLox, a
 ## Building Hammer
 Hammer can be built with `make` using `gcc` on linux. The main program follows C11 for decent compatibility.
 
-To download and build Hammer, run the following:
+To download and install Hammer, run the following:
 
 ```
 $ git clone https://github.com/shelter-kytty/hammer-interpreter.git <dir>
 $ cd <dir>
-$ make prep
-$ make release
+$ make install
 ```
 
-This will leave `hmc` in the release subdirectory of build.
+It will then prompt you for you password; this is to add `hmc` to your `$PATH` (if you dont want hammer there, just ignore the prompt).
 
-You can also run the debug target for additional information during compilation and execution, which can be tuned with the debug flags found in `common.h`. Other options that alter the interpreter's behaviour are available there.
+You can also run the release and debug targets separately, which will place them in the corressponding `./build/release` and `./build/debug` directories. Release is the intended version, while debug provides additional information during compilation and execution, which can be tuned with the debug flags found in `common.h`. Other options that alter the interpreter's behaviour are available there.
 
 
 ## Whats different?

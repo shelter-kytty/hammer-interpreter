@@ -9,6 +9,7 @@ SRC_DIR  := ./src/
 LIB_DIR  := ./lib/
 REL_DIR  := ./build/release/
 DBG_DIR  := ./build/debug/
+SYM_DIR  := /usr/local/bin/
 
 INC_DIRS  := $(shell find $(LIB_DIR) -type d) $(shell find $(SRC_DIR) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
@@ -35,7 +36,7 @@ EXE   = $(BLD_DIR)/$(TARGET)
 # TARGETS
 #
 
-.PHONY: all debug release clean prep
+.PHONY: all debug release clean prep install uninstall
 
 
 all: prep clean debug release
@@ -62,5 +63,11 @@ prep:
 
 clean:
 	rm -rf $(DBG_DIR)/$(TARGET) $(REL_DIR)/$(TARGET) $(addprefix $(DBG_DIR),$(INC_DIRS)) $(addprefix $(REL_DIR),$(INC_DIRS))
+
+install: prep release
+	sudo ln -s $(shell pwd)/$(REL_DIR)$(TARGET) $(SYM_DIR)
+
+uninstall: clean
+	sudo unlink $(SYM_DIR)$(TARGET)
 
 -include $(DEPS)
