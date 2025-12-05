@@ -17,7 +17,7 @@ static char* readFile(const char* path);
 void say_error(const char* msg, int n);
 char *convertPath(const char *path, const char *ftype);
 
-const char* argp_program_version = "hammer v0.2.0-alpha";
+const char* argp_program_version = "hammer v0.2.1-alpha";
 const char* argp_program_bug_address = "https://github.com/shelter-kytty/hammer-interpreter/issues";
 static char doc[] = "An interpreter for the programming language Hammer.";
 static struct argp_option options[] = {
