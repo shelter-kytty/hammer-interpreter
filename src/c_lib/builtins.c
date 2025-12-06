@@ -418,6 +418,214 @@ bool revNative(VM* vm, int argc, Value* argv) {
     }
 }
 
+bool stonNative(VM *vm, int argc, Value *argv) {
+    if (argc > 2) {
+        runtimeError(vm, "ston$ : Expected at most 2 args, got %d", argc);
+        return false;
+    }
+
+    if (!IS_STRING(argv[0])) {
+        runtimeError(vm, "ston$ : Expected string, got %s", getValName(argv[0]));
+        return false;
+    }
+
+    if (argc > 1 && !IS_STRING(argv[1])) {
+        runtimeError(vm, "ston$ : Expected string, got %s", getValName(argv[1]));
+        return false;
+    }
+
+    long long result = strtoll(AS_CSTRING(argv[0]), NULL, argc > 1 ? AS_INT(argv[1]) : 0);
+
+    returnNative(vm, argc, INT_VAL(result));
+    return true;
+}
+
+bool ntosNative(VM *vm, int argc, Value *argv) {
+    if (!IS_ARITH(argv[0])) {
+        runtimeError(vm, "ntos$ : Expected a number, got %s", getValName(argv[0]));
+        return false;
+    }
+
+    int buf_size;
+
+    if (IS_FLOAT(argv[0]))
+        buf_size = snprintf(NULL, 0, "%f", AS_FLOAT(argv[0]));
+    else
+        buf_size = snprintf(NULL, 0, "%lld", AS_INT(argv[0]));
+
+    char *buf = (char*)malloc(buf_size * sizeof(char));
+
+    if (IS_FLOAT(argv[0]))
+        snprintf(buf, buf_size+1, "%f", AS_FLOAT(argv[0]));
+    else
+        snprintf(buf, buf_size+1, "%lld", AS_INT(argv[0]));
+
+    ObjString *formatted = copyString(vm, buf, buf_size);
+    free(buf);
+
+    returnNative(vm, argc, OBJ_VAL(formatted));
+    return true;
+}
+
+bool readFromNative(VM *vm, int argc, Value *argv) {
+    if (!IS_STRING(argv[0])) {
+        runtimeError(vm, "readFrom$ : Expected string, got %s", getValName(argv[0]));
+        return false;
+    }
+
+    FILE* file = fopen(AS_CSTRING(argv[0]), "rb");
+
+    if (file == NULL) {
+        runtimeError(vm, "readFrom$ : Could not open file '%s'", AS_CSTRING(argv[0]));
+        return false;
+    }
+
+    fseek(file, 0L, SEEK_END);
+    size_t fileSize = ftell(file);
+    rewind(file);
+
+    char *buf = (char*)malloc(fileSize * sizeof(char));
+
+    if (buf == NULL) {
+        runtimeError(vm, "readFrom$ : Not enough memory to read file '%s'", AS_CSTRING(argv[0]));
+        return false;
+    }
+
+    size_t bytesRead = fread(buf, sizeof(char), fileSize, file);
+
+    if (bytesRead < fileSize) {
+        runtimeError(vm, "readFrom$ : An error occured while reading from '%s'", AS_CSTRING(argv[0]));
+        return false;
+    }
+
+    fclose(file);
+
+    returnNative(vm, argc, OBJ_VAL(copyString(vm, buf, fileSize)));
+    free(buf);
+
+    return true;
+}
+
+bool readLinesNative(VM *vm, int argc, Value *argv) {
+    if (!IS_STRING(argv[0])) {
+        runtimeError(vm, "readLines$ : Expected string, got %s", getValName(argv[0]));
+        return false;
+    }
+
+    FILE* file = fopen(AS_CSTRING(argv[0]), "rb");
+
+    if (file == NULL) {
+        runtimeError(vm, "readLines$ : Could not open file '%s'", AS_CSTRING(argv[0]));
+        return false;
+    }
+
+    fseek(file, 0L, SEEK_END);
+    size_t fileSize = ftell(file);
+    rewind(file);
+
+    char *buf = (char*)malloc(fileSize * sizeof(char));
+
+    if (buf == NULL) {
+        runtimeError(vm, "readLines$ : Not enough memory to read file '%s'", AS_CSTRING(argv[0]));
+        return false;
+    }
+
+    size_t bytesRead = fread(buf, sizeof(char), fileSize, file);
+
+    if (bytesRead < fileSize) {
+        runtimeError(vm, "readLines$ : An error occured while reading from '%s'", AS_CSTRING(argv[0]));
+        return false;
+    }
+
+    fclose(file);
+
+
+    ObjList *list = newList(vm);
+    push(vm, OBJ_VAL(list));
+
+    size_t i = 0;
+    size_t line_len = 0;
+    for (; i < fileSize; i++) {
+        if (buf[i] == '\n') {
+            ObjString *line = copyString(vm, buf + i - line_len, line_len);
+            push(vm, OBJ_VAL(line));
+            writeValueArray(vm, &list->array, peek(vm, 0));
+            pop(vm);
+            line_len = 0;
+            continue;
+        }
+
+        line_len++;
+    }
+
+    if (line_len > 0) {
+        ObjString *line = copyString(vm, buf + i, line_len);
+        writeValueArray(vm, &list->array, OBJ_VAL(line));
+    }
+
+    returnNative(vm, argc, pop(vm));
+    free(buf);
+    return true;
+}
+
+bool writeToNative(VM *vm, int argc, Value *argv) {
+    if (!IS_STRING(argv[0])) {
+        runtimeError(vm, "writeTo$ : Expected string, got %s", getValName(argv[0]));
+        return false;
+    }
+
+    if (!IS_STRING(argv[1])) {
+        runtimeError(vm, "writeTo$ : Expected string, got %s", getValName(argv[1]));
+        return false;
+    }
+
+    FILE *file = fopen(AS_CSTRING(argv[0]), "w");
+
+    if (file == NULL) {
+        runtimeError(vm, "writeTo$ : Could not open file for writing '%s'", getValName(argv[0]));
+        return false;
+    }
+
+    fprintf(file, "%s", AS_CSTRING(argv[1]));
+
+    long long fileSize = (long long)ftell(file);
+
+    fclose(file);
+
+    returnNative(vm, argc, INT_VAL(fileSize));
+    return true;
+}
+
+bool appendToNative(VM *vm, int argc, Value *argv) {
+    if (!IS_STRING(argv[0])) {
+        runtimeError(vm, "appendTo$ : Expected string, got %s", getValName(argv[0]));
+        return false;
+    }
+
+    if (!IS_STRING(argv[1])) {
+        runtimeError(vm, "appendTo$ : Expected string, got %s", getValName(argv[1]));
+        return false;
+    }
+
+    FILE *file = fopen(AS_CSTRING(argv[0]), "a");
+
+    if (file == NULL) {
+        runtimeError(vm, "appendTo$ : Could not open file for writing '%s'", getValName(argv[0]));
+        return false;
+    }
+
+    fprintf(file, "%s", AS_CSTRING(argv[1]));
+
+    long long fileSize = (long long)ftell(file);
+
+    fclose(file);
+
+    returnNative(vm, argc, INT_VAL(fileSize));
+    return true;
+}
+
+
+
 // Need to fix :: replace the weird bits with callFromC()
 bool foldlNative(VM* vm, int argc, Value* argv) {
     if (!IS_CALLABLE(argv[0])) {
@@ -529,6 +737,12 @@ void defineBuiltins(VM *vm)
     defineNative(vm, "typeOf", typeOfNative, 1);
     defineNative(vm, "len", lenNative, 1);
     defineNative(vm, "rev", revNative, 1);
+    defineNative(vm, "ston", stonNative, -2);
+    defineNative(vm, "ntos", ntosNative, 1);
+    defineNative(vm, "readFrom", readFromNative, 1);
+    defineNative(vm, "readLines", readLinesNative, 1);
+    defineNative(vm, "writeTo", writeToNative, 2);
+    defineNative(vm, "appendTo", appendToNative, 2);
 
     defineNative(vm, "map", mapNative, 2);
     defineNative(vm, "zip", zipNative, 3);

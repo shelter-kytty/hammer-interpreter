@@ -17,16 +17,16 @@ typedef enum {
 // DEBUGGING ------------------->
 #ifdef DEBUG
 /* Compilation info */
-// #define DEBUG_PARSER_PROGRESS
-// #define DEBUG_DISPLAY_TOKENS
+#define DEBUG_PARSER_PROGRESS
+#define DEBUG_DISPLAY_TOKENS
 // #define DEBUG_DISPLAY_AST
 // #define DEBUG_COMPILER_PROGRESS
 // #define DEBUG_UPVALUE_INFO
 
 /* Runtime info */
-#define DEBUG_DISPLAY_PROGRAM
-#define DEBUG_DISPLAY_INSTRUCTIONS
-#define DEBUG_DISPLAY_STACK
+//#define DEBUG_DISPLAY_PROGRAM
+//#define DEBUG_DISPLAY_INSTRUCTIONS
+//#define DEBUG_DISPLAY_STACK
 //#define DEBUG_DISPLAY_TABLES
 //#define DEBUG_DISPLAY_STRINGS
 
